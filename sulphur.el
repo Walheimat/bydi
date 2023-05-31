@@ -107,7 +107,7 @@ implementation."
 
     `(progn ,@(mapcar (lambda (it) `(should (,check ,it ,expected))) forms))))
 
-(defvar sulphur-test-helper--temp-files nil)
+(defvar sulphur--temp-files nil)
 
 (defmacro sulphur-with-temp-file (filename &rest body)
   "Create and discard a file.
@@ -129,7 +129,7 @@ The associated file buffer is also killed."
              (progn ,@body)
            (when (get-buffer ,filename)
              (kill-buffer ,filename)
-             (push ,filename sulphur-test-helper--temp-files))
+             (push ,filename sulphur--temp-files))
            (delete-file ,tmp-file))))))
 
 ;; Integration
@@ -174,19 +174,18 @@ The associated file buffer is also killed."
 
     (add-to-list 'load-path source-dir)))
 
-(defun sulphur-test-helper--report (&rest _)
+(defun sulphur--report (&rest _)
   "Print created temp files."
-  (when sulphur-test-helper--temp-files
+  (when sulphur--temp-files
     (message
      "\nCreated the following temp files:\n%s"
-     sulphur-test-helper--temp-files)))
+     sulphur--temp-files)))
 
 (defun sulphur-ert-runner-setup ()
   "Set up `ert-runner'."
-  (when (require 'ert-runner nil t)
-    (add-hook
-     'ert-runner-reporter-run-ended-functions
-     #'sulphur-test-helper--report)))
+  (add-hook
+   'ert-runner-reporter-run-ended-functions
+   #'sulphur--report))
 
 (provide 'sulphur)
 
