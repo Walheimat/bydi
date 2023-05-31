@@ -181,9 +181,9 @@ The associated file buffer is also killed."
      "\nCreated the following temp files:\n%s"
      sulphur-test-helper--temp-files)))
 
-(defun sulphur-ert-test-runner-setup ()
-  "Set up `ert-test-runner'."
-  (when (require 'ert-test-runner nil t)
+(defun sulphur-ert-runner-setup ()
+  "Set up `ert-runner'."
+  (when (require 'ert-runner nil t)
     (add-hook
      'ert-runner-reporter-run-ended-functions
      #'sulphur-test-helper--report)))
