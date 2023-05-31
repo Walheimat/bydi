@@ -160,9 +160,10 @@ The associated file buffer is also killed."
 
       (undercover--setup
        (append patterns
-               (list :report-format report-format)
-             (list :report-file report-file)
-             (list :send-report nil))))))
+               (list
+                (list :report-format report-format)
+                (list :report-file report-file)
+                (list :send-report nil)))))))
 
 (defun sulphur-path-setup ()
   "Set up paths."
