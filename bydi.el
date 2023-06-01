@@ -132,6 +132,13 @@ The associated file buffer is also killed."
              (push ,filename bydi--temp-files))
            (delete-file ,tmp-file))))))
 
+(defun bydi--report (&rest _)
+  "Print created temp files."
+  (when bydi--temp-files
+    (message
+     "\nCreated the following temp files:\n%s"
+     bydi--temp-files)))
+
 ;; Integration
 
 (defvar undercover-force-coverage)
@@ -165,27 +172,35 @@ The associated file buffer is also killed."
                 (list :report-file report-file)
                 (list :send-report nil)))))))
 
-(defun bydi-path-setup ()
-  "Set up paths."
+(defun bydi-path-setup (&optional paths)
+  "Set up `load-path'.
+
+Optionally, set up additional relative PATHS.
+
+This function returns a list of the directories added to the
+`load-path'."
   (let* ((source-dir (expand-file-name (or (getenv "GITHUB_WORKSPACE")
-                                           default-directory))))
+                                           default-directory)))
+         (paths (append (list source-dir) (mapcar (lambda (it) (expand-file-name it source-dir)) paths))))
 
-    (message "Setting source path to %s" source-dir)
+    (message "Adding %s to `load-path'" paths)
 
-    (add-to-list 'load-path source-dir)))
+    (dolist (it paths)
+      (add-to-list 'load-path it))
 
-(defun bydi--report (&rest _)
-  "Print created temp files."
-  (when bydi--temp-files
-    (message
-     "\nCreated the following temp files:\n%s"
-     bydi--temp-files)))
+    paths))
 
-(defun bydi-ert-runner-setup ()
-  "Set up `ert-runner'."
+(defun bydi-ert-runner-setup (&optional reporter)
+  "Set up `ert-runner'.
+
+An optional REPORTER function can be passed."
   (add-hook
    'ert-runner-reporter-run-ended-functions
-   #'bydi--report))
+   #'bydi--report)
+
+  (add-hook
+   'ert-runner-reporter-run-ended-functions
+   reporter))
 
 (provide 'bydi)
 
