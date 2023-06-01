@@ -1,6 +1,6 @@
-* sulphur
+* bydi
 
-=sulphur= extends =ert= with some simple mocking macros. The macros allow
+=bydi= extends =ert= with some simple mocking macros. The macros allow
 you to mock any function and make assertions on what was (or wasn't)
 called and with what arguments.
 
@@ -15,10 +15,12 @@ You can add it as a dependency in your Cask file:
 #+BEGIN_SRC Cask
 (development
  ;; ... your other dependencies
- (depends-on "sulphur" :git "https://github.com/Walheimat/sulphur" :branch "trunk"))
+ (depends-on "bydi" :git "https://github.com/Walheimat/bydi" :branch "trunk"))
 #+END_SRC
-
-** Usage
 
 Please have a look, again, at my [[https://github.com/Walheimat/wal-emacs][configuration]] for usage examples
 where it is still part of the main source code base.
+
+** Etymology
+
+MoBY-DIck.

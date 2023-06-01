@@ -1,7 +1,7 @@
-;;; sulphur.el --- Test macros and setups -*- lexical-binding: t; -*-
+;;; bydi.el --- Test macros and setups -*- lexical-binding: t; -*-
 
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
-;; Homepage: https://github.com/Walheimat/sulphur
+;; Homepage: https://github.com/Walheimat/bydi
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: extensions
@@ -17,21 +17,21 @@
 
 ;; Macros
 
-(defun sulphur-rf (a &rest _r)
+(defun bydi-rf (a &rest _r)
   "Return first argument passed A."
   a)
 
-(defun sulphur-ra (&rest r)
+(defun bydi-ra (&rest r)
   "Return all arguments R."
   r)
 
-(defun sulphur-rt (&rest _r)
+(defun bydi-rt (&rest _r)
   "Return symbol `testing'."
   'testing)
 
-(defvar sulphur-mock-history nil)
+(defvar bydi-mock-history nil)
 
-(defmacro sulphur-with-mock (to-mock &rest body)
+(defmacro bydi-with-mock (to-mock &rest body)
   "Evaluate BODY mocking list of function(s) TO-MOCK.
 
 TO-MOCK maybe be a single item or a list of items.
@@ -45,11 +45,11 @@ is either the argument list or the result of the mock
 implementation."
   (declare (indent defun))
 
-  `(cl-letf* ((sulphur-mock-history (make-hash-table :test 'equal))
+  `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
               (remember (lambda (fun args)
-                          (let* ((prev (gethash fun sulphur-mock-history))
+                          (let* ((prev (gethash fun bydi-mock-history))
                                  (val (if prev (push args prev) (list args))))
-                            (puthash fun val sulphur-mock-history)
+                            (puthash fun val bydi-mock-history)
                             args)))
               ,@(mapcar (lambda (it)
                           (cond
@@ -67,49 +67,49 @@ implementation."
                         (if (listp to-mock) to-mock (list to-mock))))
      ,@body))
 
-(defun sulphur-clear-mocks ()
+(defun bydi-clear-mocks ()
   "Clear mock history."
-  (setq sulphur-mock-history (make-hash-table :test 'equal)))
+  (setq bydi-mock-history (make-hash-table :test 'equal)))
 
-(defmacro sulphur-was-called-with (fun expected)
+(defmacro bydi-was-called-with (fun expected)
   "Check if FUN was called with EXPECTED."
   (let ((safe-exp (if (listp expected) expected `(list ,expected))))
-    `(should (equal ,safe-exp (car (gethash ',fun sulphur-mock-history))))))
+    `(should (equal ,safe-exp (car (gethash ',fun bydi-mock-history))))))
 
-(defmacro sulphur-was-called-nth-with (fun expected index)
+(defmacro bydi-was-called-nth-with (fun expected index)
   "Check if FUN was called with EXPECTED on the INDEXth call."
   (let ((safe-exp (if (listp expected) expected `(list ,expected))))
-    `(should (equal ,safe-exp (nth ,index (reverse (gethash ',fun sulphur-mock-history)))))))
+    `(should (equal ,safe-exp (nth ,index (reverse (gethash ',fun bydi-mock-history)))))))
 
-(defmacro sulphur-was-called (fun)
+(defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
-  `(let ((actual (gethash ',fun sulphur-mock-history 'not-called)))
+  `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
      (should-not (equal 'not-called actual))))
 
-(defmacro sulphur-was-not-called (fun)
+(defmacro bydi-was-not-called (fun)
   "Check if mocked FUN was not called."
-  `(let ((actual (gethash ',fun sulphur-mock-history 'not-called)))
+  `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
      (should (equal 'not-called actual))))
 
-(defmacro sulphur-was-called-n-times (fun expected)
+(defmacro bydi-was-called-n-times (fun expected)
   "Check if mocked FUN was called EXPECTED times."
-  `(should (equal ,expected (length (gethash ',fun sulphur-mock-history)))))
+  `(should (equal ,expected (length (gethash ',fun bydi-mock-history)))))
 
-(defmacro sulphur-match-expansion (form &rest value)
+(defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."
   `(should (pcase (macroexpand-1 ',form)
              ,@(mapcar #'(lambda (x) (list x t)) value))))
 
-(cl-defmacro sulphur-should-every (forms &key check expected)
+(cl-defmacro bydi-should-every (forms &key check expected)
   "CHECK if all FORMS have EXPECTED value using CHECK."
   (declare (indent defun))
   (let ((check (or check 'eq)))
 
     `(progn ,@(mapcar (lambda (it) `(should (,check ,it ,expected))) forms))))
 
-(defvar sulphur--temp-files nil)
+(defvar bydi--temp-files nil)
 
-(defmacro sulphur-with-temp-file (filename &rest body)
+(defmacro bydi-with-temp-file (filename &rest body)
   "Create and discard a file.
 
 FILENAME is the name of the file, BODY the form to execute while
@@ -121,7 +121,7 @@ The associated file buffer is also killed."
   (let ((tmp-file (expand-file-name filename "/tmp")))
 
     `(progn
-       (let ((sulphur-tmp-file ,tmp-file))
+       (let ((bydi-tmp-file ,tmp-file))
 
          (make-empty-file ,tmp-file)
 
@@ -129,7 +129,7 @@ The associated file buffer is also killed."
              (progn ,@body)
            (when (get-buffer ,filename)
              (kill-buffer ,filename)
-             (push ,filename sulphur--temp-files))
+             (push ,filename bydi--temp-files))
            (delete-file ,tmp-file))))))
 
 ;; Integration
@@ -138,7 +138,7 @@ The associated file buffer is also killed."
 (defvar undercover--merge-report)
 (declare-function undercover--setup "ext:undercover.el")
 
-(defun sulphur-undercover-setup (patterns)
+(defun bydi-undercover-setup (patterns)
   "Set up `undercover' for PATTERNS."
   (when (require 'undercover nil t)
     (message "Setting up `undercover'")
@@ -165,7 +165,7 @@ The associated file buffer is also killed."
                 (list :report-file report-file)
                 (list :send-report nil)))))))
 
-(defun sulphur-path-setup ()
+(defun bydi-path-setup ()
   "Set up paths."
   (let* ((source-dir (expand-file-name (or (getenv "GITHUB_WORKSPACE")
                                            default-directory))))
@@ -174,19 +174,19 @@ The associated file buffer is also killed."
 
     (add-to-list 'load-path source-dir)))
 
-(defun sulphur--report (&rest _)
+(defun bydi--report (&rest _)
   "Print created temp files."
-  (when sulphur--temp-files
+  (when bydi--temp-files
     (message
      "\nCreated the following temp files:\n%s"
-     sulphur--temp-files)))
+     bydi--temp-files)))
 
-(defun sulphur-ert-runner-setup ()
+(defun bydi-ert-runner-setup ()
   "Set up `ert-runner'."
   (add-hook
    'ert-runner-reporter-run-ended-functions
-   #'sulphur--report))
+   #'bydi--report))
 
-(provide 'sulphur)
+(provide 'bydi)
 
-;;; sulphur.el ends here
+;;; bydi.el ends here
