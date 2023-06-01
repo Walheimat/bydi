@@ -1,5 +1,7 @@
 * bydi
 
+[[./assets/bydi.png]]
+
 =bydi= extends =ert= with some simple mocking macros. The macros allow
 you to mock any function and make assertions on what was (or wasn't)
 called and with what arguments.
