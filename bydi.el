@@ -198,9 +198,10 @@ An optional REPORTER function can be passed."
    'ert-runner-reporter-run-ended-functions
    #'bydi--report)
 
-  (add-hook
-   'ert-runner-reporter-run-ended-functions
-   reporter))
+  (when reporter
+    (add-hook
+     'ert-runner-reporter-run-ended-functions
+     reporter)))
 
 (provide 'bydi)
 
