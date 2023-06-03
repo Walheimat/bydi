@@ -1,0 +1,5 @@
+# Build fragments
+.cask/
+dist/
+coverage
+*.elc

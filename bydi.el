@@ -71,6 +71,11 @@ implementation."
   "Clear mock history."
   (setq bydi-mock-history (make-hash-table :test 'equal)))
 
+(defmacro bydi-was-called (fun)
+  "Check if mocked FUN was called."
+  `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
+     (should-not (equal 'not-called actual))))
+
 (defmacro bydi-was-called-with (fun expected)
   "Check if FUN was called with EXPECTED."
   (let ((safe-exp (if (listp expected) expected `(list ,expected))))
@@ -80,11 +85,6 @@ implementation."
   "Check if FUN was called with EXPECTED on the INDEXth call."
   (let ((safe-exp (if (listp expected) expected `(list ,expected))))
     `(should (equal ,safe-exp (nth ,index (reverse (gethash ',fun bydi-mock-history)))))))
-
-(defmacro bydi-was-called (fun)
-  "Check if mocked FUN was called."
-  `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
-     (should-not (equal 'not-called actual))))
 
 (defmacro bydi-was-not-called (fun)
   "Check if mocked FUN was not called."
@@ -148,7 +148,7 @@ The associated file buffer is also killed."
 (defun bydi-undercover-setup (patterns)
   "Set up `undercover' for PATTERNS."
   (when (require 'undercover nil t)
-    (message "Setting up `undercover'")
+    (message "Setting up `undercover' with %s" patterns)
 
     (let ((report-format 'text)
           (report-file "./coverage/results.txt"))
