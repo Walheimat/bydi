@@ -2,6 +2,15 @@
 
 [[./assets/bydi.png]]
 
+#+BEGIN_HTML
+<a href='https://coveralls.io/github/Walheimat/bydi?branch=trunk'>
+    <img
+        src='https://coveralls.io/repos/github/Walheimat/bydi/badge.svg?branch=trunk'
+        alt='Coverage Status'
+    />
+</a>
+#+END_HTML
+
 =bydi= extends =ert= with some simple mocking macros. The macros allow
 you to mock any function and make assertions on what was (or wasn't)
 called and with what arguments.
