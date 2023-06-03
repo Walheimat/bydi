@@ -192,9 +192,11 @@
   (let ((load-path nil)
         (default-directory "/tmp"))
 
-    (bydi-path-setup (list "test" "mock"))
+    (bydi-with-mock ((getenv . #'ignore))
 
-    (should (equal load-path '("/tmp/mock" "/tmp/test" "/tmp")))))
+      (bydi-path-setup (list "test" "mock"))
+
+      (should (equal load-path '("/tmp/mock" "/tmp/test" "/tmp"))))))
 
 (ert-deftest bydi-ert-runner-setup ()
   (bydi-with-mock (add-hook)
