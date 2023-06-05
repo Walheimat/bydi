@@ -206,6 +206,18 @@
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions bydi--report) 0)
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions always) 1)))
 
+(defvar coverage-file (ert-resource-file "coverage.txt"))
+
+(ert-deftest bydi-calculate-coverage ()
+  (let ((bydi-report--text-file coverage-file))
+
+    (should (string-equal "37.33%" (bydi-calculate-coverage)))))
+
+(ert-deftest bydi-calculate-coverage--errors-on-missing-file ()
+  (let ((bydi-report--text-file "/tmp/non-existence.txt"))
+
+    (should-error (bydi-calculate-coverage) :type 'user-error)))
+
 ;;; bydi-test.el ends here
 
 ;; Local Variables:

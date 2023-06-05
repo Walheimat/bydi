@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Self-referential test suite.
+- Command `bydi-calculate-coverage` to that using the text report
+  file.
 
 ## [v0.1.0]
 

@@ -139,6 +139,31 @@ The associated file buffer is also killed."
      "\nCreated the following temp files:\n%s"
      bydi--temp-files)))
 
+(defvar bydi-report--text-file "./coverage/results.txt"
+  "The file used to store text coverage.")
+
+(defvar bydi-report--json-file "./coverage/.resultset.json"
+  "The file used to store the JSON coverage.")
+
+(defun bydi--matches-in-string (regexp str)
+  "Return all matches of REGEXP in STR."
+  (let ((matches nil))
+
+    (with-temp-buffer
+      (insert str)
+      (goto-char (point-min))
+      (while (re-search-forward regexp nil t)
+        (push (match-string 1) matches)))
+    matches))
+
+(defun bydi--coverage-add (buf type)
+  "Add all numbers of TYPE in buffer BUF."
+  (let* ((regex (concat type ": \\(?1:[[:digit:]]+\\)"))
+         (content (with-current-buffer buf (buffer-string)))
+         (numbers (bydi--matches-in-string regex content)))
+
+    (apply '+ (mapcar #'string-to-number numbers))))
+
 ;; Integration
 
 (defvar undercover-force-coverage)
@@ -151,7 +176,7 @@ The associated file buffer is also killed."
     (message "Setting up `undercover' with %s" patterns)
 
     (let ((report-format 'text)
-          (report-file "./coverage/results.txt"))
+          (report-file bydi-report--text-file))
 
       (setq undercover-force-coverage t)
 
@@ -163,7 +188,7 @@ The associated file buffer is also killed."
        ((getenv "COVERAGE_WITH_JSON")
         (setq undercover--merge-report nil
               report-format 'simplecov
-              report-file "./coverage/.resultset.json")))
+              report-file bydi-report--json-file)))
 
       (undercover--setup
        (append patterns
@@ -202,6 +227,21 @@ An optional REPORTER function can be passed."
     (add-hook
      'ert-runner-reporter-run-ended-functions
      reporter)))
+
+;;;###autoload
+(defun bydi-calculate-coverage ()
+  "Calculate the coverage using the results file."
+  (interactive)
+
+  (if (file-exists-p bydi-report--text-file)
+      (with-temp-buffer
+        (insert-file-contents bydi-report--text-file)
+
+        (when-let* ((relevant (bydi--coverage-add (current-buffer) "Relevant"))
+                    (covered (bydi--coverage-add (current-buffer) "Covered")))
+
+          (format "%.2f%%" (* 100 (/ (float covered) relevant)))))
+    (user-error "Text report %s doesn't exist" bydi-report--text-file)))
 
 (provide 'bydi)
 

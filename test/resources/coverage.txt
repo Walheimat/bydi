@@ -1,0 +1,4 @@
+== Code coverage text report ==
+one : Percent 77% [Relevant: 70 Covered: 54 Missed: 16]
+two : Percent 15% [Relevant: 146 Covered: 22 Missed: 124]
+three : Percent 88% [Relevant: 9 Covered: 8 Missed: 1]
