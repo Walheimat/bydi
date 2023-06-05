@@ -240,7 +240,7 @@ An optional REPORTER function can be passed."
         (when-let* ((relevant (bydi--coverage-add (current-buffer) "Relevant"))
                     (covered (bydi--coverage-add (current-buffer) "Covered")))
 
-          (format "%.2f%%" (* 100 (/ (float covered) relevant)))))
+          (message "%.2f%%" (* 100 (/ (float covered) relevant)))))
     (user-error "Text report %s doesn't exist" bydi-report--text-file)))
 
 (provide 'bydi)
