@@ -208,10 +208,16 @@
 
 (defvar coverage-file (ert-resource-file "coverage.txt"))
 
+(ert-deftest bydi--matches-in-string ()
+  (let ((str "This 1 string has 3 matches, or is it 2?")
+        (pattern "\\(?1:[[:digit:]]\\)"))
+
+    (should (equal '("2" "3" "1") (bydi--matches-in-string pattern str)))))
+
 (ert-deftest bydi-calculate-coverage ()
   (let ((bydi-report--text-file coverage-file))
 
-    (should (string-equal "37.33%" (bydi-calculate-coverage)))))
+    (should (string-equal "Combined coverage: 37.33%" (bydi-calculate-coverage)))))
 
 (ert-deftest bydi-calculate-coverage--errors-on-missing-file ()
   (let ((bydi-report--text-file "/tmp/non-existence.txt"))

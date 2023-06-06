@@ -156,7 +156,7 @@ The associated file buffer is also killed."
         (push (match-string 1) matches)))
     matches))
 
-(defun bydi--coverage-add (buf type)
+(defun bydi-coverage--add (buf type)
   "Add all numbers of TYPE in buffer BUF."
   (let* ((regex (concat type ": \\(?1:[[:digit:]]+\\)"))
          (content (with-current-buffer buf (buffer-string)))
@@ -164,7 +164,26 @@ The associated file buffer is also killed."
 
     (apply '+ (mapcar #'string-to-number numbers))))
 
+(defun bydi-coverage--average ()
+  "Calculate the average."
+  (with-temp-buffer
+    (insert-file-contents bydi-report--text-file)
+
+    (when-let* ((relevant (bydi-coverage--add (current-buffer) "Relevant"))
+                (covered (bydi-coverage--add (current-buffer) "Covered")))
+
+      (string-to-number (format "%.2f%%" (* 100 (/ (float covered) relevant)))))))
+
 ;; Integration
+
+(defvar bydi-env--coverage-with-json "COVERAGE_WITH_JSON"
+  "If set, SimpleCov (JSON) format is used.")
+
+(defvar bydi-env--ci "CI"
+  "Set if in a CI environment.")
+
+(defvar bydi-env--github-workspace "GITHUB_WORKSPACE"
+  "Location of the project in GitHub action.")
 
 (defvar undercover-force-coverage)
 (defvar undercover--merge-report)
@@ -181,11 +200,11 @@ The associated file buffer is also killed."
       (setq undercover-force-coverage t)
 
       (cond
-       ((getenv "CI")
+       ((getenv bydi-env--ci)
         (setq report-format 'lcov
               report-file nil))
 
-       ((getenv "COVERAGE_WITH_JSON")
+       ((getenv bydi-env--coverage-with-json)
         (setq undercover--merge-report nil
               report-format 'simplecov
               report-file bydi-report--json-file)))
@@ -204,7 +223,7 @@ Optionally, set up additional relative PATHS.
 
 This function returns a list of the directories added to the
 `load-path'."
-  (let* ((source-dir (expand-file-name (or (getenv "GITHUB_WORKSPACE")
+  (let* ((source-dir (expand-file-name (or (getenv bydi-env--github-workspace)
                                            default-directory)))
          (paths (append (list source-dir) (mapcar (lambda (it) (expand-file-name it source-dir)) paths))))
 
@@ -234,13 +253,9 @@ An optional REPORTER function can be passed."
   (interactive)
 
   (if (file-exists-p bydi-report--text-file)
-      (with-temp-buffer
-        (insert-file-contents bydi-report--text-file)
+      (let ((average (bydi-coverage--average)))
 
-        (when-let* ((relevant (bydi--coverage-add (current-buffer) "Relevant"))
-                    (covered (bydi--coverage-add (current-buffer) "Covered")))
-
-          (message "%.2f%%" (* 100 (/ (float covered) relevant)))))
+        (message "Combined coverage: %s%%" average))
     (user-error "Text report %s doesn't exist" bydi-report--text-file)))
 
 (provide 'bydi)
