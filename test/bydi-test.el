@@ -17,12 +17,10 @@
 (ert-deftest bydi-rt ()
   (should (equal (bydi-rt 'test 'this 'now) 'testing)))
 
-(ert-deftest bydi-with-mock ()
+(ert-deftest bydi-with-mock--old-usage ()
   (bydi-match-expansion
    (bydi-with-mock (bydi-rf
-                    (bydi-rt . #'ignore)
-                    (:return "hello" :mock substring)
-                    (:mock buffer-file-name :return "/tmp/test.el"))
+                    (bydi-rt . #'ignore))
      (should (always)))
    `(cl-letf*
         ((bydi-mock-history
@@ -39,13 +37,33 @@
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
-            (apply remember
-                   (list 'bydi-rf r))))
+            (apply remember (list 'bydi-rf r))))
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
             (apply remember (list 'bydi-rt r))
-            (apply #'ignore r)))
+            (apply #'ignore r))))
+      (should (always)))))
+
+(ert-deftest bydi-with-mock ()
+  (bydi-match-expansion
+   (bydi-with-mock ((:return "hello" :mock substring)
+                    (:mock buffer-file-name :return "/tmp/test.el")
+                    (:mock bydi-ra :with ignore)
+                    (:with always :mock buffer-live-p))
+     (should (always)))
+   `(cl-letf*
+        ((bydi-mock-history
+          (make-hash-table :test 'equal))
+         (remember
+          (lambda (fun args)
+            (let* ((prev (gethash fun bydi-mock-history))
+                   (val (if prev
+                            (push args prev)
+                          (list args))))
+
+              (puthash fun val bydi-mock-history)
+              args)))
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
@@ -55,7 +73,17 @@
           (lambda (&rest r)
             (interactive)
             (apply remember (list 'buffer-file-name r))
-            "/tmp/test.el")))
+            "/tmp/test.el"))
+         ((symbol-function 'bydi-ra)
+          (lambda (&rest r)
+            (interactive)
+            (apply remember (list 'bydi-ra r))
+            (apply #'ignore r)))
+         ((symbol-function 'buffer-live-p)
+          (lambda (&rest r)
+            (interactive)
+            (apply remember (list 'buffer-live-p r))
+            (apply #'always r))))
       (should (always)))))
 
 (ert-deftest bydi-with-mock--single-function ()
@@ -173,7 +201,7 @@
 
 (ert-deftest bydi-undercover-setup ()
   (bydi-with-mock (undercover--setup
-                   (getenv . #'ignore))
+                   (:mock getenv :with ignore))
 
     (bydi-undercover-setup (list "bydi.el"))
 
@@ -182,7 +210,7 @@
                                                (:send-report nil))))))
 (ert-deftest bydi-undercover-setup--ci ()
   (bydi-with-mock (undercover--setup
-                   (getenv . (lambda (r) (string= "CI" r))))
+                   (:mock getenv :with (lambda (r) (string= "CI" r))))
 
     (bydi-undercover-setup (list "bydi.el"))
 
@@ -191,7 +219,7 @@
                                                (:send-report nil))))))
 (ert-deftest bydi-undercover-setup--json ()
   (bydi-with-mock (undercover--setup
-                   (getenv . (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
+                   (:mock getenv :with (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
 
     (bydi-undercover-setup (list "bydi.el"))
 
@@ -203,7 +231,7 @@
   (let ((load-path nil)
         (default-directory "/tmp"))
 
-    (bydi-with-mock ((getenv . #'ignore))
+    (bydi-with-mock ((:mock getenv :with ignore))
 
       (bydi-path-setup (list "test" "mock"))
 

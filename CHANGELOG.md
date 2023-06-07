@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Self-referential test suite.
 - Command `bydi-calculate-coverage` to that using the text report file.
-- `bydi-with-mock` now accepts `plist`s of shape `(:mock function :return value)` (or `(:return value :mock function`).
+- `bydi-with-mock` now accepts `plist`s of a certain shape. You can
+  use `(:mock fun :return value)` or `(:mock fun :with other-fun)`.
 
 ## [v0.1.0]
 
