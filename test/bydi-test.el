@@ -20,8 +20,9 @@
 (ert-deftest bydi-with-mock ()
   (bydi-match-expansion
    (bydi-with-mock (bydi-rf
-                    (bydi-rt . #'ignore))
-
+                    (bydi-rt . #'ignore)
+                    (:return "hello" :mock substring)
+                    (:mock buffer-file-name :return "/tmp/test.el"))
      (should (always)))
    `(cl-letf*
         ((bydi-mock-history
@@ -44,7 +45,17 @@
           (lambda (&rest r)
             (interactive)
             (apply remember (list 'bydi-rt r))
-            (apply #'ignore r))))
+            (apply #'ignore r)))
+         ((symbol-function 'substring)
+          (lambda (&rest r)
+            (interactive)
+            (apply remember (list 'substring r))
+            "hello"))
+         ((symbol-function 'buffer-file-name)
+          (lambda (&rest r)
+            (interactive)
+            (apply remember (list 'buffer-file-name r))
+            "/tmp/test.el")))
       (should (always)))))
 
 (ert-deftest bydi-with-mock--single-function ()
@@ -139,15 +150,15 @@
    (bydi-with-temp-file "test"
      (should t))
    '(progn
-     (let ((bydi-tmp-file "/tmp/test"))
+      (let ((bydi-tmp-file "/tmp/test"))
 
-       (make-empty-file "/tmp/test")
-       (unwind-protect
-           (progn (should t))
-         (when (get-buffer "test")
-           (kill-buffer "test")
-           (push "test" bydi--temp-files))
-         (delete-file "/tmp/test"))))))
+        (make-empty-file "/tmp/test")
+        (unwind-protect
+            (progn (should t))
+          (when (get-buffer "test")
+            (kill-buffer "test")
+            (push "test" bydi--temp-files))
+          (delete-file "/tmp/test"))))))
 
 (ert-deftest bydi--report ()
   (bydi-with-mock (message)
@@ -167,8 +178,8 @@
     (bydi-undercover-setup (list "bydi.el"))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format text)
-                                                         (:report-file "./coverage/results.txt")
-                                                         (:send-report nil))))))
+                                               (:report-file "./coverage/results.txt")
+                                               (:send-report nil))))))
 (ert-deftest bydi-undercover-setup--ci ()
   (bydi-with-mock (undercover--setup
                    (getenv . (lambda (r) (string= "CI" r))))
@@ -176,8 +187,8 @@
     (bydi-undercover-setup (list "bydi.el"))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format lcov)
-                                                         (:report-file nil)
-                                                         (:send-report nil))))))
+                                               (:report-file nil)
+                                               (:send-report nil))))))
 (ert-deftest bydi-undercover-setup--json ()
   (bydi-with-mock (undercover--setup
                    (getenv . (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
@@ -185,8 +196,8 @@
     (bydi-undercover-setup (list "bydi.el"))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format simplecov)
-                                                         (:report-file "./coverage/.resultset.json")
-                                                         (:send-report nil))))))
+                                               (:report-file "./coverage/.resultset.json")
+                                               (:send-report nil))))))
 
 (ert-deftest bydi-path-setup ()
   (let ((load-path nil)
