@@ -189,7 +189,7 @@
           (delete-file "/tmp/test"))))))
 
 (ert-deftest bydi--report ()
-  (bydi-with-mock (message)
+  (bydi (message)
     (let ((bydi--temp-files nil))
       (bydi--report)
       (bydi-was-not-called message)
@@ -200,8 +200,8 @@
                                           '("/tmp/test"))))))
 
 (ert-deftest bydi-undercover-setup ()
-  (bydi-with-mock (undercover--setup
-                   (:mock getenv :with ignore))
+  (bydi (undercover--setup
+         (:mock getenv :with ignore))
 
     (bydi-undercover-setup (list "bydi.el"))
 
@@ -209,8 +209,8 @@
                                                (:report-file "./coverage/results.txt")
                                                (:send-report nil))))))
 (ert-deftest bydi-undercover-setup--ci ()
-  (bydi-with-mock (undercover--setup
-                   (:mock getenv :with (lambda (r) (string= "CI" r))))
+  (bydi (undercover--setup
+         (:mock getenv :with (lambda (r) (string= "CI" r))))
 
     (bydi-undercover-setup (list "bydi.el"))
 
@@ -218,8 +218,8 @@
                                                (:report-file nil)
                                                (:send-report nil))))))
 (ert-deftest bydi-undercover-setup--json ()
-  (bydi-with-mock (undercover--setup
-                   (:mock getenv :with (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
+  (bydi (undercover--setup
+         (:mock getenv :with (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
 
     (bydi-undercover-setup (list "bydi.el"))
 
@@ -231,14 +231,14 @@
   (let ((load-path nil)
         (default-directory "/tmp"))
 
-    (bydi-with-mock ((:mock getenv :with ignore))
+    (bydi ((:mock getenv :with ignore))
 
       (bydi-path-setup (list "test" "mock"))
 
       (should (equal load-path '("/tmp/mock" "/tmp/test" "/tmp"))))))
 
 (ert-deftest bydi-ert-runner-setup ()
-  (bydi-with-mock (add-hook)
+  (bydi (add-hook)
 
     (bydi-ert-runner-setup 'always)
 

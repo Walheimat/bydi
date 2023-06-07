@@ -83,6 +83,8 @@ implementation."
                         (if (listp to-mock) to-mock (list to-mock))))
      ,@body))
 
+(defalias 'bydi 'bydi-with-mock)
+
 (defun bydi-clear-mocks ()
   "Clear mock history."
   (setq bydi-mock-history (make-hash-table :test 'equal)))

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command `bydi-calculate-coverage` to that using the text report file.
 - `bydi-with-mock` now accepts `plist`s of a certain shape. You can
   use `(:mock fun :return value)` or `(:mock fun :with other-fun)`.
+- Macro `bydi-with-mock` is now also aliased by just `bydi`.
 
 ## [v0.1.0]
 
