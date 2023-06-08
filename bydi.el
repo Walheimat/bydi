@@ -40,10 +40,10 @@ The arguments passed to the mocked functions will be recorded in
 a hash table. Repeated calls will append results.
 
 Each item in TO-MOCK can either be a function symbol returning
-nil, a cons cell of shape (FUN . REPLACE) returning the result of
-calling REPLACE, a plist of shape (:mock FUN :with REPLACE)
-returning the result of calling REPLACE or a plist of
-shape (:mock FUN :return VAL) returning VAL."
+the result of remembering, a cons cell of shape (FUN . REPLACE)
+returning the result of calling REPLACE, a plist of shape (:mock
+FUN :with REPLACE) returning the result of calling REPLACE or a
+plist of shape (:mock FUN :return VAL) returning VAL."
   (declare (indent defun))
 
   `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
@@ -83,11 +83,16 @@ shape (:mock FUN :return VAL) returning VAL."
   "Return template to override FUN.
 
 Optionally, return RETURN."
-  `((symbol-function ',fun)
-    (lambda (&rest r)
-      (interactive)
-      (apply 'bydi-with-mock--remember (list ',fun r))
-      ,return)))
+  (if return
+      `((symbol-function ',fun)
+        (lambda (&rest r)
+          (interactive)
+          (apply 'bydi-with-mock--remember (list ',fun r))
+          ,return))
+    `((symbol-function ',fun)
+      (lambda (&rest r)
+        (interactive)
+        (apply 'bydi-with-mock--remember (list ',fun r))))))
 
 (defalias 'bydi 'bydi-with-mock)
 
