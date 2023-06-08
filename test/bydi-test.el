@@ -17,10 +17,9 @@
 (ert-deftest bydi-rt ()
   (should (equal (bydi-rt 'test 'this 'now) 'testing)))
 
-(ert-deftest bydi-with-mock--old-usage ()
+(ert-deftest bydi-with-mock--simple ()
   (bydi-match-expansion
-   (bydi-with-mock (bydi-rf
-                    (bydi-rt . #'ignore))
+   (bydi-with-mock (bydi-rf bydi-ra)
      (should (always)))
    `(cl-letf*
         ((bydi-mock-history
@@ -29,14 +28,33 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi-with-mock--remember (list 'bydi-rf r))))
+         ((symbol-function 'bydi-ra)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi-with-mock--remember (list 'bydi-ra r)))))
+      (should (always)))))
+
+(ert-deftest bydi-with-mock--old-usage ()
+  (bydi-match-expansion
+   (bydi-with-mock ((bydi-rt . #'ignore)
+                    (format . (lambda (a &rest _args) a)))
+     (should (always)))
+   `(cl-letf*
+        ((bydi-mock-history
+          (make-hash-table :test 'equal))
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
             (apply 'bydi-with-mock--remember (list 'bydi-rt r))
-            (apply #'ignore r))))
+            (apply #'ignore r)))
+         ((symbol-function 'format)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi-with-mock--remember (list 'format r))
+            (apply (lambda (a &rest _args) a) r))))
       (should (always)))))
 
-(ert-deftest bydi-with-mock ()
+(ert-deftest bydi-with-mock--explicit ()
   (bydi-match-expansion
    (bydi-with-mock ((:return "hello" :mock substring)
                     (:mock buffer-file-name :return "/tmp/test.el")
@@ -65,6 +83,26 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi-with-mock--remember (list 'buffer-live-p r))
+            (apply #'always r))))
+      (should (always)))))
+
+(ert-deftest bydi-with-mock--ignore-or-always ()
+  (bydi-match-expansion
+   (bydi-with-mock ((:ignore buffer-live-p)
+                    (:always abbrev-table-p))
+     (should (always)))
+   `(cl-letf*
+        ((bydi-mock-history
+          (make-hash-table :test 'equal))
+         ((symbol-function 'buffer-live-p)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi-with-mock--remember (list 'buffer-live-p r))
+            (apply #'ignore r)))
+         ((symbol-function 'abbrev-table-p)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi-with-mock--remember (list 'abbrev-table-p r))
             (apply #'always r))))
       (should (always)))))
 

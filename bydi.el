@@ -42,8 +42,10 @@ a hash table. Repeated calls will append results.
 Each item in TO-MOCK can either be a function symbol returning
 the result of remembering, a cons cell of shape (FUN . REPLACE)
 returning the result of calling REPLACE, a plist of shape (:mock
-FUN :with REPLACE) returning the result of calling REPLACE or a
-plist of shape (:mock FUN :return VAL) returning VAL."
+FUN :with REPLACE) returning the result of calling REPLACE, a
+plist of shape (:mock FUN :return VAL) returning VAL, a plist of
+shape (:ignore FUN) that will replace FUN with `ignore' or a
+plist of shape (:always FUN) that will replace FUN with `always'."
   (declare (indent defun))
 
   `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
@@ -56,7 +58,13 @@ plist of shape (:mock FUN :return VAL) returning VAL."
                                                     (plist-get it :return)))
                              ((plist-get it :with)
                               (bydi-with-mock--bind (plist-get it :mock)
-                                                    `(apply #',(plist-get it :with) r)))))
+                                                    `(apply #',(plist-get it :with) r)))
+                             ((plist-get it :ignore)
+                              (bydi-with-mock--bind (plist-get it :ignore)
+                                                    '(apply #'ignore r)))
+                             ((plist-get it :always)
+                              (bydi-with-mock--bind (plist-get it :always)
+                                                    '(apply #'always r)))))
                            ((consp it)
                             (bydi-with-mock--bind (car it) `(apply ,(cdr it) r)))
                            (t
@@ -67,9 +75,11 @@ plist of shape (:mock FUN :return VAL) returning VAL."
 (defun bydi-with-mock--valid-plistp (plist)
   "Check if PLIST list a valid one."
   (and (plistp plist)
-       (memq :mock plist)
-       (or (memq :return plist)
-           (memq :with plist))))
+       (or (and (memq :mock plist)
+                (or (memq :return plist)
+                    (memq :with plist)))
+           (memq :always plist)
+           (memq :ignore plist))))
 
 (defun bydi-with-mock--remember (fun args)
   "Remember function FUN and return ARGS."
