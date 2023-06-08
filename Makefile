@@ -41,6 +41,10 @@ test: .cask
 	mkdir -p coverage
 	cask exec ert-runner $(TEST_ARGS)
 
+.PHONY: local-test
+local-test: test
+	cat coverage/results.txt
+
 # -- Clean-up
 
 .PHONY: clean
