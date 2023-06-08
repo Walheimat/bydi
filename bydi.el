@@ -30,6 +30,7 @@
   'testing)
 
 (defvar bydi-mock-history nil)
+(defvar bydi-mock-sometimes nil)
 
 (defmacro bydi-with-mock (to-mock &rest body)
   "Evaluate BODY mocking list of function(s) TO-MOCK.
@@ -49,6 +50,7 @@ plist of shape (:always FUN) that will replace FUN with `always'."
   (declare (indent defun))
 
   `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
+              (bydi-mock-sometimes t)
               ,@(mapcar (lambda (it)
                           (cond
                            ((bydi-with-mock--valid-plistp it)
@@ -64,7 +66,10 @@ plist of shape (:always FUN) that will replace FUN with `always'."
                                                     '(apply #'ignore r)))
                              ((plist-get it :always)
                               (bydi-with-mock--bind (plist-get it :always)
-                                                    '(apply #'always r)))))
+                                                    '(apply #'always r)))
+                             ((plist-get it :sometimes)
+                              (bydi-with-mock--bind (plist-get it :sometimes)
+                                                    '(funcall #'bydi-with-mock--sometimes)))))
                            ((consp it)
                             (bydi-with-mock--bind (car it) `(apply ,(cdr it) r)))
                            (t
@@ -79,7 +84,8 @@ plist of shape (:always FUN) that will replace FUN with `always'."
                 (or (memq :return plist)
                     (memq :with plist)))
            (memq :always plist)
-           (memq :ignore plist))))
+           (memq :ignore plist)
+           (memq :sometimes plist))))
 
 (defun bydi-with-mock--remember (fun args)
   "Remember function FUN and return ARGS."
@@ -88,6 +94,10 @@ plist of shape (:always FUN) that will replace FUN with `always'."
 
     (puthash fun val bydi-mock-history)
     args))
+
+(defun bydi-with-mock--sometimes ()
+  "Return value of `bydi-mock-sometimes'."
+  bydi-mock-sometimes)
 
 (defun bydi-with-mock--bind (fun &optional return)
   "Return template to override FUN.
@@ -109,6 +119,10 @@ Optionally, return RETURN."
 (defun bydi-clear-mocks ()
   "Clear mock history."
   (setq bydi-mock-history (make-hash-table :test 'equal)))
+
+(defun bydi-toggle-sometimes ()
+  "Toggle `bydi-mock-sometimes'."
+  (setq bydi-mock-sometimes (not bydi-mock-sometimes)))
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."

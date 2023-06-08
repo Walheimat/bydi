@@ -22,8 +22,8 @@
    (bydi-with-mock (bydi-rf bydi-ra)
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history
-          (make-hash-table :test 'equal))
+        ((bydi-mock-history (make-hash-table :test 'equal))
+         (bydi-mock-sometimes t)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -40,8 +40,8 @@
                     (format . (lambda (a &rest _args) a)))
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history
-          (make-hash-table :test 'equal))
+        ((bydi-mock-history (make-hash-table :test 'equal))
+         (bydi-mock-sometimes t)
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
@@ -62,8 +62,8 @@
                     (:with always :mock buffer-live-p))
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history
-          (make-hash-table :test 'equal))
+        ((bydi-mock-history (make-hash-table :test 'equal))
+         (bydi-mock-sometimes t)
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
@@ -86,14 +86,15 @@
             (apply #'always r))))
       (should (always)))))
 
-(ert-deftest bydi-with-mock--ignore-or-always ()
+(ert-deftest bydi-with-mock--shorthands ()
   (bydi-match-expansion
    (bydi-with-mock ((:ignore buffer-live-p)
-                    (:always abbrev-table-p))
+                    (:always abbrev-table-p)
+                    (:sometimes derived-mode-p))
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history
-          (make-hash-table :test 'equal))
+        ((bydi-mock-history (make-hash-table :test 'equal))
+         (bydi-mock-sometimes t)
          ((symbol-function 'buffer-live-p)
           (lambda (&rest r)
             (interactive)
@@ -103,17 +104,21 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi-with-mock--remember (list 'abbrev-table-p r))
-            (apply #'always r))))
+            (apply #'always r)))
+         ((symbol-function 'derived-mode-p)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi-with-mock--remember (list 'derived-mode-p r))
+            (funcall #'bydi-with-mock--sometimes))))
       (should (always)))))
 
 (ert-deftest bydi-with-mock--single-function ()
   (bydi-match-expansion
    (bydi-with-mock bydi-rf
-
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history
-          (make-hash-table :test 'equal))
+        ((bydi-mock-history (make-hash-table :test 'equal))
+         (bydi-mock-sometimes t)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -124,6 +129,19 @@
   (let ((bydi-mock-history nil))
     (bydi-clear-mocks)
     (should bydi-mock-history)))
+
+(ert-deftest bydi-toggle-sometimes ()
+  (bydi ((:sometimes buffer-live-p))
+
+    (should (buffer-live-p))
+
+    (bydi-toggle-sometimes)
+
+    (should-not (buffer-live-p))
+
+    (bydi-toggle-sometimes)
+
+    (should (buffer-live-p))))
 
 (ert-deftest bydi-was-called ()
   (bydi-match-expansion
