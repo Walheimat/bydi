@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Self-referential test suite.
 - Command `bydi-calculate-coverage` to that using the text report file.
-- `bydi-with-mock` now accepts `plist`s of a certain shape. You can
-  use `(:mock fun :return value)` or `(:mock fun :with other-fun)`.
 - Macro `bydi-with-mock` is now also aliased by just `bydi`.
+- `bydi` now accepts `plist`s of a certain shape. You can use `(:mock
+  fun :return value)` or `(:mock fun :with other-fun)`.
+- `bydi` now accepts shorthand `(:always fun)` and `(:ignore fun)` to
+  mock a function with `ignore` or `always` respectively.
 
 ## [v0.1.0]
 
