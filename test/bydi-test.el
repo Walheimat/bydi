@@ -25,23 +25,15 @@
    `(cl-letf*
         ((bydi-mock-history
           (make-hash-table :test 'equal))
-         (remember
-          (lambda (fun args)
-            (let* ((prev (gethash fun bydi-mock-history))
-                   (val (if prev
-                            (push args prev)
-                          (list args))))
-
-              (puthash fun val bydi-mock-history)
-              args)))
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
-            (apply remember (list 'bydi-rf r))))
+            (apply 'bydi-with-mock--remember (list 'bydi-rf r))
+            nil))
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
-            (apply remember (list 'bydi-rt r))
+            (apply 'bydi-with-mock--remember (list 'bydi-rt r))
             (apply #'ignore r))))
       (should (always)))))
 
@@ -55,34 +47,25 @@
    `(cl-letf*
         ((bydi-mock-history
           (make-hash-table :test 'equal))
-         (remember
-          (lambda (fun args)
-            (let* ((prev (gethash fun bydi-mock-history))
-                   (val (if prev
-                            (push args prev)
-                          (list args))))
-
-              (puthash fun val bydi-mock-history)
-              args)))
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
-            (apply remember (list 'substring r))
+            (apply 'bydi-with-mock--remember (list 'substring r))
             "hello"))
          ((symbol-function 'buffer-file-name)
           (lambda (&rest r)
             (interactive)
-            (apply remember (list 'buffer-file-name r))
+            (apply 'bydi-with-mock--remember (list 'buffer-file-name r))
             "/tmp/test.el"))
          ((symbol-function 'bydi-ra)
           (lambda (&rest r)
             (interactive)
-            (apply remember (list 'bydi-ra r))
+            (apply 'bydi-with-mock--remember (list 'bydi-ra r))
             (apply #'ignore r)))
          ((symbol-function 'buffer-live-p)
           (lambda (&rest r)
             (interactive)
-            (apply remember (list 'buffer-live-p r))
+            (apply 'bydi-with-mock--remember (list 'buffer-live-p r))
             (apply #'always r))))
       (should (always)))))
 
@@ -94,20 +77,11 @@
    `(cl-letf*
         ((bydi-mock-history
           (make-hash-table :test 'equal))
-         (remember
-          (lambda (fun args)
-            (let* ((prev (gethash fun bydi-mock-history))
-                   (val (if prev
-                            (push args prev)
-                          (list args))))
-
-              (puthash fun val bydi-mock-history)
-              args)))
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
-            (apply remember
-                   (list 'bydi-rf r)))))
+            (apply 'bydi-with-mock--remember (list 'bydi-rf r))
+            nil)))
       (should (always)))))
 
 (ert-deftest bydi-clear-mocks ()

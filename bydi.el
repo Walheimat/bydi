@@ -39,49 +39,55 @@ TO-MOCK maybe be a single item or a list of items.
 The arguments passed to the mocked functions will be recorded in
 a hash table. Repeated calls will append results.
 
-Each item in TO-MOCK can either be a function symbol or a cons
-cell of shape (FUNCTION . MOCK-IMPLEMENTATION). The return value
-is either the argument list or the result of the mock
-implementation."
+Each item in TO-MOCK can either be a function symbol returning
+nil, a cons cell of shape (FUN . REPLACE) returning the result of
+calling REPLACE, a plist of shape (:mock FUN :with REPLACE)
+returning the result of calling REPLACE or a plist of
+shape (:mock FUN :return VAL) returning VAL."
   (declare (indent defun))
 
   `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
-              (remember (lambda (fun args)
-                          (let* ((prev (gethash fun bydi-mock-history))
-                                 (val (if prev (push args prev) (list args))))
-                            (puthash fun val bydi-mock-history)
-                            args)))
               ,@(mapcar (lambda (it)
                           (cond
-                           ((and (plistp it)
-                                 (or (and (eq (nth 0 it) :mock) (eq (nth 2 it) :return))
-                                     (and (eq (nth 0 it) :return) (eq (nth 2 it) :mock))
-                                     (and (eq (nth 0 it) :mock) (eq (nth 2 it) :with))
-                                     (and (eq (nth 0 it) :with) (eq (nth 2 it) :mock))))
-                            (if-let ((ret (plist-get it :return)))
-                                `((symbol-function ',(plist-get it :mock))
-                                  (lambda (&rest r)
-                                    (interactive)
-                                    (apply remember (list ',(plist-get it :mock) r))
-                                    ,ret))
-                              `((symbol-function ',(plist-get it :mock))
-                                 (lambda (&rest r)
-                                    (interactive)
-                                    (apply remember (list ',(plist-get it :mock) r))
-                                    (apply #',(plist-get it :with) r)))))
+                           ((bydi-with-mock--valid-plistp it)
+                            (cond
+                             ((plist-get it :return)
+                              (bydi-with-mock--bind (plist-get it :mock)
+                                                    (plist-get it :return)))
+                             ((plist-get it :with)
+                              (bydi-with-mock--bind (plist-get it :mock)
+                                                    `(apply #',(plist-get it :with) r)))))
                            ((consp it)
-                            `((symbol-function ',(car it))
-                              (lambda (&rest r)
-                                (interactive)
-                                (apply remember (list ',(car it) r))
-                                (apply ,(cdr it) r))))
+                            (bydi-with-mock--bind (car it) `(apply ,(cdr it) r)))
                            (t
-                            `((symbol-function ',it)
-                              (lambda (&rest r)
-                                (interactive)
-                                (apply remember (list ',it r)))))))
+                            (bydi-with-mock--bind it))))
                         (if (listp to-mock) to-mock (list to-mock))))
      ,@body))
+
+(defun bydi-with-mock--valid-plistp (plist)
+  "Check if PLIST list a valid one."
+  (and (plistp plist)
+       (memq :mock plist)
+       (or (memq :return plist)
+           (memq :with plist))))
+
+(defun bydi-with-mock--remember (fun args)
+  "Remember function FUN and return ARGS."
+  (let* ((prev (gethash fun bydi-mock-history))
+         (val (if prev (push args prev) (list args))))
+
+    (puthash fun val bydi-mock-history)
+    args))
+
+(defun bydi-with-mock--bind (fun &optional return)
+  "Return template to override FUN.
+
+Optionally, return RETURN."
+  `((symbol-function ',fun)
+    (lambda (&rest r)
+      (interactive)
+      (apply 'bydi-with-mock--remember (list ',fun r))
+      ,return)))
 
 (defalias 'bydi 'bydi-with-mock)
 
