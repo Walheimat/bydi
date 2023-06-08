@@ -124,29 +124,73 @@ Optionally, return RETURN."
   "Toggle `bydi-mock-sometimes'."
   (setq bydi-mock-sometimes (not bydi-mock-sometimes)))
 
+(defun bydi--safe-exp (sexp)
+  "Get SEXP as a quoted list."
+  (if (listp sexp) sexp `(list ,sexp)))
+
+(defun bydi--was-called (_fun _expected actual)
+  "Verify that ACTUAL represents a function call."
+  (not (equal 'not-called actual)))
+(put 'bydi--was-called 'ert-explainer 'bydi--explain-call)
+
+(defun bydi--was-not-called (_fun _expected actual)
+  "Verify that ACTUAL represents missing function call."
+  (equal 'not-called actual))
+(put 'bydi--was-not-called 'ert-explainer 'bydi--explain-call)
+
+(defun bydi--was-called-with (_fun expected actual)
+  "Verify that EXPECTED represents ACTUAL arguments."
+  (equal expected actual))
+(put 'bydi--was-called-with 'ert-explainer 'bydi--explain-call)
+
+(defun bydi--was-called-n-times (_fun expected actual)
+  "Verify that EXPECTED number matches ACTUAL."
+  (eq expected actual))
+(put 'bydi--was-called-n-times 'ert-explainer 'bydi--explain-call)
+
+(defun bydi--readable (data)
+  "Make sure DATA is readable."
+  (cond
+   ((null data)
+    'null)
+   (t data)))
+
+(defun bydi--explain-call (fun expected actual)
+  "Explain that FUN was called with ACTUAL not EXPECTED."
+  (if (equal actual 'not-called)
+      `(no-call ',fun)
+    `(call ',fun
+           :expected ,(bydi--readable expected)
+           :actual ,(bydi--readable actual))))
+
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
   `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
-     (should-not (equal 'not-called actual))))
-
-(defmacro bydi-was-called-with (fun expected)
-  "Check if FUN was called with EXPECTED."
-  (let ((safe-exp (if (listp expected) expected `(list ,expected))))
-    `(should (equal ,safe-exp (car (gethash ',fun bydi-mock-history))))))
-
-(defmacro bydi-was-called-nth-with (fun expected index)
-  "Check if FUN was called with EXPECTED on the INDEXth call."
-  (let ((safe-exp (if (listp expected) expected `(list ,expected))))
-    `(should (equal ,safe-exp (nth ,index (reverse (gethash ',fun bydi-mock-history)))))))
+     (should (bydi--was-called ',fun nil actual))))
 
 (defmacro bydi-was-not-called (fun)
   "Check if mocked FUN was not called."
   `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
-     (should (equal 'not-called actual))))
+     (should (bydi--was-not-called ',fun nil actual))))
+
+(defmacro bydi-was-called-with (fun expected)
+  "Check if FUN was called with EXPECTED."
+  (let ((safe-exp (bydi--safe-exp expected)))
+
+    `(let ((actual (gethash ',fun bydi-mock-history)))
+       (should (bydi--was-called-with ',fun ,safe-exp (car actual))))))
+
+(defmacro bydi-was-called-nth-with (fun expected index)
+  "Check if FUN was called with EXPECTED on the INDEXth call."
+  (let ((safe-exp (bydi--safe-exp expected)))
+
+    `(let ((actual (nth ,index (reverse (gethash ',fun bydi-mock-history)))))
+       (should (bydi--was-called-with ',fun ,safe-exp actual)))))
 
 (defmacro bydi-was-called-n-times (fun expected)
   "Check if mocked FUN was called EXPECTED times."
-  `(should (equal ,expected (length (gethash ',fun bydi-mock-history)))))
+  `(let ((actual (length (gethash ',fun bydi-mock-history))))
+     (should (bydi--was-called-n-times ',fun ,expected actual))))
 
 (defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."

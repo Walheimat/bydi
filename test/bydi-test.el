@@ -146,46 +146,45 @@
 (ert-deftest bydi-was-called ()
   (bydi-match-expansion
    (bydi-was-called apply)
-   '(let ((actual
-           (gethash 'apply bydi-mock-history 'not-called)))
-      (should-not (equal 'not-called actual)))))
+   '(let ((actual (gethash 'apply bydi-mock-history 'not-called)))
+      (should (bydi--was-called 'apply nil actual)))))
 
 (ert-deftest bydi-was-called-with ()
   (bydi-match-expansion
-
    (bydi-was-called-with apply '(a b c))
-   '(should (equal '(a b c) (car (gethash 'apply bydi-mock-history))))))
+   '(let ((actual (gethash 'apply bydi-mock-history)))
+      (should (bydi--was-called-with 'apply '(a b c) (car actual))))))
 
 (ert-deftest bydi-was-called-with--single-item ()
   (bydi-match-expansion
-
    (bydi-was-called-with apply "test")
-   '(should (equal (list "test") (car (gethash 'apply bydi-mock-history))))))
+   '(let ((actual (gethash 'apply bydi-mock-history)))
+      (should (bydi--was-called-with 'apply (list "test") (car actual))))))
 
 (ert-deftest bydi-was-called-nth-with ()
   (bydi-match-expansion
-
    (bydi-was-called-nth-with apply 'test 1)
-   '(should (equal 'test (nth 1 (reverse (gethash 'apply bydi-mock-history)))))))
+   '(let ((actual (nth 1 (reverse (gethash 'apply bydi-mock-history)))))
+      (should (bydi--was-called-with 'apply 'test actual)))))
 
 (ert-deftest bydi-was-called-nth-with--single-item ()
   (bydi-match-expansion
-
    (bydi-was-called-nth-with apply "test" 1)
-   '(should (equal (list "test") (nth 1 (reverse (gethash 'apply bydi-mock-history)))))))
+   '(let ((actual (nth 1 (reverse (gethash 'apply bydi-mock-history)))))
+      (should (bydi--was-called-with 'apply (list "test") actual)))))
 
 (ert-deftest bydi-was-not-called ()
   (bydi-match-expansion
    (bydi-was-not-called apply)
-   '(let ((actual
-           (gethash 'apply bydi-mock-history 'not-called)))
-      (should (equal 'not-called actual)))))
+   '(let ((actual (gethash 'apply bydi-mock-history 'not-called)))
+      (should (bydi--was-not-called 'apply nil actual)))))
 
 (ert-deftest bydi-was-called-n-times ()
   (bydi-match-expansion
 
    (bydi-was-called-n-times apply 12)
-   '(should (equal 12 (length (gethash 'apply bydi-mock-history))))))
+   '(let ((actual (length (gethash 'apply bydi-mock-history))))
+      (should (bydi--was-called-n-times 'apply 12 actual)))))
 
 (ert-deftest bydi-match-expansion ()
   (bydi-match-expansion
@@ -270,6 +269,8 @@
 
     (bydi-ert-runner-setup 'always)
 
+    (bydi-was-called add-hook)
+    (bydi-was-called-n-times add-hook 2)
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions bydi--report) 0)
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions always) 1)))
 

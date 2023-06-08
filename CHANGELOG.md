@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bydi` now accepts shorthand `(:toggle fun)` that will have a
   function return `t` by default or `nil` if `(bydi-toggle-sometimes)`
   was called.
+- `bydi-was-{not}-called-{n-times, with}` now have an explainer
+  function.
 
 ## [v0.1.0]
 
