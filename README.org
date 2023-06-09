@@ -16,10 +16,9 @@ you to mock any function and make assertions on what was (or wasn't)
 called and with what arguments.
 
 It grew out of my [[https://github.com/Walheimat/wal-emacs][configuration]] and therefore is currently still
-heavily geared towards my usage. Setting up mocks itself is still a
-bit cumbersome.
+heavily geared towards my usage.
 
-** Usage
+** Integration
 
 You can add it as a dependency in your Cask file:
 
@@ -29,5 +28,182 @@ You can add it as a dependency in your Cask file:
  (depends-on "bydi" :git "https://github.com/Walheimat/bydi" :branch "trunk"))
 #+END_SRC
 
-Please have a look at the [[https://github.com/Walheimat/wal-emacs/tree/trunk/test][test suites]] in my configuration for usage
-examples.
+
+** Usage in Tests
+
+Let's look at some simple examples. Say you want to test a function
+that calls some other external functions but you're actually just
+interested in verifying your composition.
+
+#+begin_src emacs-lisp
+(defun my-project-name ()
+  "Inform about project name."
+  (when-let* ((proj (project-current nil))
+              (name (project-name proj)))
+
+    (message "My project is named %s" name)
+    name))
+
+(ert-deftest mock-always ()
+  (bydi ((:mock project-current :with always) ; Make sure `project-current' returns t.
+         (:mock project-name :return "Test Project")) ; Make `project-name' return constant value.
+
+    (should (string= (my-project-name) "Test Project"))
+
+    ;; Verify `project-current' was called with nil.
+    (bydi-was-called-with project-current (list nil))
+
+    ;; Verify that `project-name' was called.
+    (bydi-was-called project-name))
+#+end_src
+
+The example introduces macro =bydi-with-mock=, here called using its
+alias =bydi=. =bydi= accepts a list of mocking instructions and a body to
+execute while these instructions are active.
+
+There are a few short-hands for useful mocks using =ignore= and =always=.
+Using the example above, we could have written instead:
+
+#+begin_src emacs-lisp
+(ert-deftest mock-always ()
+  (bydi ((:always project-current)
+         (:mock project-name :return "Test Project"))
+    (should (string= (my-project-name) "Test Project"))
+    (bydi-was-called-with project-current (list nil))
+    (bydi-was-called project-name))
+#+end_src
+
+So what if your function branches? There's another short-hand for that.
+
+#+begin_src emacs-lisp
+(defun my-branching-project-name ()
+  "Inform about project name."
+  (if-let* ((proj (project-current nil))
+            (name (project-name proj)))
+      (progn
+        (message "My project is named %s" name)
+        name)
+    (message "You're not in a project")
+    nil))
+
+(ert-deftest mock-sometimes ()
+  (bydi ((:sometimes project-current) ; Make `project-current' only sometimes return t.
+         (:mock project-name :return "Test Project")) ; Make `project-name' return constant value.
+
+    (should (string= (my-branching-project-name) "Test Project"))
+    (bydi-was-called project-name)
+
+    (bydi-toggle-sometimes) ;; Toggles all `:sometimes' mocks.
+    (bydi-clear-mocks) ;; Clear mock history.
+
+    (should-not (my-branching-project-name))
+    (bydi-was-not-called project-name)))
+#+end_src
+
+What if a mocked function is called repeatedly and we care about the
+amount and arguments? There's more macros.
+
+#+BEGIN_SRC emacs-lisp
+(require 'subr-x)
+
+(defun my-org-file-counter (directory)
+  "Count the number of org files in DIRECTORY."
+  (let* ((files (directory-files directory))
+         (real-files (nthcdr 2 files))
+         (fun (apply-partially #'string= "org")))
+
+    (thread-last real-files
+      (mapcar #'file-name-extension)
+      (seq-count fun))))
+
+(ert-deftest count-one ()
+  (bydi ((:mock directory-files :return '("." ".." "one.txt" "two.org" "three.org" "four.cpp"))
+         (:mock file-name-extension :return "org")
+         file-name-base)
+
+    (should (eq 4 (my-org-file-counter "/some/dir")))
+    (bydi-was-not-called file-name-base)
+    (bydi-was-called file-name-extension)
+
+     ;; Verify the number of calls.
+    (bydi-was-called-n-times file-name-extension 4)
+    (bydi-was-called-n-times directory-files 1)
+
+    ;; Verify the passed arguments for a specific invocation.
+    (bydi-was-called-nth-with file-name-extension "three.org" 2)))
+#+END_SRC
+
+Sometimes you don't want to replace a function but still know if and
+how it was called.
+
+#+BEGIN_SRC emacs-lisp
+;; Using `my-org-file-counter' defined above.
+
+(ert-deftest count-two ()
+  (bydi ((:mock directory-files :return '("." ".." "one.txt" "two.org" "three.org" "four.cpp"))
+         (:spy file-name-extension))
+
+    ;; Actual implementation means we match correctly.
+    (should (eq 2 (my-org-file-counter "/some/dir")))
+
+    (bydi-was-called file-name-extension)
+
+    (bydi-was-called-n-times file-name-extension 4)
+    (bydi-was-called-n-times directory-files 1)
+
+    (bydi-was-called-nth-with file-name-extension "three.org" 2)))
+#+END_SRC
+
+Verifying macro expansion can be done with =bydi-match-expansion=.
+
+#+begin_src emacs-lisp
+(defmacro my-useful-macro (name &rest body)
+  "Notify about expansion of BODY named NAME."
+  (declare (indent defun))
+
+  `(progn
+     (message ,(format "Expanding your %s" name))
+     ,@body))
+
+(my-useful-macro hello
+  (message "yes"))
+
+(ert-deftest match-expansion ()
+  (bydi-match-expansion
+   (my-useful-macro macro
+     (setq some-variable 'some-value))
+   '(progn
+     (message "Expanding your macro")
+     (setq some-variable 'some-value))))
+#+end_src
+
+** Usage in Test Suites
+
+Please have a look at [[https://github.com/Walheimat/wal-emacs][my Emacs configuration]] for real-world usage
+examples that set up =ert-runner= and =undercover= (the same is done here
+but since we test =bydi= itself, it's not using its setup functions).
+
+The main recipe is the following:
+
+#+begin_src emacs-lisp
+(require 'bydi nil t)
+
+(declare-function bydi-path-setup "ext:bydi.el")
+(declare-function bydi-ert-runner-setup "ext:bydi.el")
+(declare-function bydi-undercover-setup "ext:bydi.el")
+
+(bydi-path-setup)
+;; or
+(bydi-path-setup '("relative/one" "relative/two"))
+
+(bydi-undercover-setup (list "my-package.el"))
+;; or
+(bydi-undercover-setup  (list "src/*.el" "root.el"))
+
+(bydi-ert-runner-setup)
+;; or
+(defun my-reporter (&rest _)
+  "Notify."
+  (message "We are done here"))
+(bydi-ert-runnner-setup #'my-reporter)
+#+end_src
