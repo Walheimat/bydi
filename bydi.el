@@ -133,18 +133,24 @@ Optionally, return RETURN."
 
 (defvar bydi-mock-spies nil)
 
+(defvar bydi-spy--name 'bydi-spi)
+
 (defun bydi--spy (fun &rest r)
   "Record invocation of FUN with R, then call it."
-  (bydi-with-mock--remember (intern (subr-name fun)) r)
-  (apply fun r))
+  (bydi-with-mock--remember fun r))
 
 (defun bydi-spy--create ()
   "Record invocations of FUN in history."
-  (mapc (lambda (it) (advice-add it :around #'bydi--spy)) bydi-mock-spies))
+  (mapc (lambda (it)
+          (advice-add
+           it :after
+           (lambda (args) (bydi--spy it args))
+           (list (cons 'name bydi-spy--name))))
+        bydi-mock-spies))
 
 (defun bydi-spy--clear ()
   "Clear all spies."
-  (mapc (lambda (it) (advice-remove it #'bydi--spy)) bydi-mock-spies))
+  (mapc (lambda (it) (advice-remove it bydi-spy--name)) bydi-mock-spies))
 
 (defalias 'bydi 'bydi-with-mock)
 
