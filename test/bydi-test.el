@@ -24,6 +24,7 @@
    `(cl-letf*
         ((bydi-mock-history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
+         (bydi-mock-spies 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -32,7 +33,9 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi-with-mock--remember (list 'bydi-ra r)))))
-      (should (always)))))
+      (bydi-spy--create)
+      (should (always))
+      (bydi-spy--clear))))
 
 (ert-deftest bydi-with-mock--old-usage ()
   (bydi-match-expansion
@@ -42,6 +45,7 @@
    `(cl-letf*
         ((bydi-mock-history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
+         (bydi-mock-spies 'nil)
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
@@ -52,7 +56,9 @@
             (interactive)
             (apply 'bydi-with-mock--remember (list 'format r))
             (apply (lambda (a &rest _args) a) r))))
-      (should (always)))))
+      (bydi-spy--create)
+      (should (always))
+      (bydi-spy--clear))))
 
 (ert-deftest bydi-with-mock--explicit ()
   (bydi-match-expansion
@@ -64,6 +70,7 @@
    `(cl-letf*
         ((bydi-mock-history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
+         (bydi-mock-spies 'nil)
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
@@ -84,7 +91,28 @@
             (interactive)
             (apply 'bydi-with-mock--remember (list 'buffer-live-p r))
             (apply #'always r))))
-      (should (always)))))
+      (bydi-spy--create)
+      (should (always))
+      (bydi-spy--clear))))
+
+(ert-deftest bydi-with-mock--spies ()
+  (bydi-match-expansion
+   (bydi-with-mock ((:spy buffer-live-p)
+                    (:mock abbrev-table-p :with bydi-rt)
+                    (:spy derived-mode-p))
+     (should (always)))
+   `(cl-letf*
+        ((bydi-mock-history (make-hash-table :test 'equal))
+         (bydi-mock-sometimes t)
+         (bydi-mock-spies '(buffer-live-p derived-mode-p))
+         ((symbol-function 'abbrev-table-p)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi-with-mock--remember (list 'abbrev-table-p r))
+            (apply #'bydi-rt r))))
+      (bydi-spy--create)
+      (should (always))
+      (bydi-spy--clear))))
 
 (ert-deftest bydi-with-mock--shorthands ()
   (bydi-match-expansion
@@ -95,6 +123,7 @@
    `(cl-letf*
         ((bydi-mock-history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
+         (bydi-mock-spies 'nil)
          ((symbol-function 'buffer-live-p)
           (lambda (&rest r)
             (interactive)
@@ -110,7 +139,9 @@
             (interactive)
             (apply 'bydi-with-mock--remember (list 'derived-mode-p r))
             (funcall #'bydi-with-mock--sometimes))))
-      (should (always)))))
+      (bydi-spy--create)
+      (should (always))
+      (bydi-spy--clear))))
 
 (ert-deftest bydi-with-mock--single-function ()
   (bydi-match-expansion
@@ -119,11 +150,14 @@
    `(cl-letf*
         ((bydi-mock-history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
+         (bydi-mock-spies 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
             (apply 'bydi-with-mock--remember (list 'bydi-rf r)))))
-      (should (always)))))
+      (bydi-spy--create)
+      (should (always))
+      (bydi-spy--clear))))
 
 (ert-deftest bydi-clear-mocks ()
   (let ((bydi-mock-history nil))
@@ -291,6 +325,14 @@
   (let ((bydi-report--text-file "/tmp/non-existence.txt"))
 
     (should-error (bydi-calculate-coverage) :type 'user-error)))
+
+(ert-deftest bydi-spy--spies ()
+  (bydi ((:spy file-name-extension))
+    (should (equal '("txt" "org" "el")
+                   (mapcar #'file-name-extension '("one.txt" "two.org" "three.el"))))
+    (bydi-was-called file-name-extension)
+    (bydi-was-called-n-times file-name-extension 3)
+    (bydi-was-called-nth-with file-name-extension "two.org" 1)))
 
 ;;; bydi-test.el ends here
 

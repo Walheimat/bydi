@@ -16,11 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fun :return value)` or `(:mock fun :with other-fun)`.
 - `bydi` now accepts shorthand `(:always fun)` and `(:ignore fun)` to
   mock a function with `ignore` or `always` respectively.
-- `bydi` now accepts shorthand `(:toggle fun)` that will have a
+- `bydi` now accepts shorthand `(:sometimes fun)` that will have a
   function return `t` by default or `nil` if `(bydi-toggle-sometimes)`
   was called.
 - `bydi-was-{not}-called-{n-times, with}` now have an explainer
   function.
+- `bydi` now accepts `(:spy fun)` that allows spying on a function
+  without replacing it so it can be used in conjunction with
+  `bydi-was-{not}-called-{n-times, with}`.
 
 ## [v0.1.0]
 

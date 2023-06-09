@@ -41,41 +41,57 @@ The arguments passed to the mocked functions will be recorded in
 a hash table. Repeated calls will append results.
 
 Each item in TO-MOCK can either be a function symbol returning
-the result of remembering, a cons cell of shape (FUN . REPLACE)
-returning the result of calling REPLACE, a plist of shape (:mock
-FUN :with REPLACE) returning the result of calling REPLACE, a
-plist of shape (:mock FUN :return VAL) returning VAL, a plist of
-shape (:ignore FUN) that will replace FUN with `ignore' or a
-plist of shape (:always FUN) that will replace FUN with `always'."
+the result of `bydi-mock--remember', a plist of shape (:mock FUN
+:with REPLACE) returning the result of calling REPLACE, a plist
+of shape (:mock FUN :return VAL) returning VAL, a plist of
+shape (:ignore FUN) that will replace FUN with `ignore', a plist
+of shape (:always FUN) that will replace FUN with `always', a
+plist of shape (:sometimes FUN) that will return the value of
+`bydi-mock-sometimes', a plist of shape (:spy FUN) that will
+advise FUN so that its invocations are recorded, or a cons cell
+of shape (FUN . REPLACE) returning the result of calling
+REPLACE."
   (declare (indent defun))
 
-  `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
-              (bydi-mock-sometimes t)
-              ,@(mapcar (lambda (it)
-                          (cond
-                           ((bydi-with-mock--valid-plistp it)
-                            (cond
-                             ((plist-get it :return)
-                              (bydi-with-mock--bind (plist-get it :mock)
-                                                    (plist-get it :return)))
-                             ((plist-get it :with)
-                              (bydi-with-mock--bind (plist-get it :mock)
-                                                    `(apply #',(plist-get it :with) r)))
-                             ((plist-get it :ignore)
-                              (bydi-with-mock--bind (plist-get it :ignore)
-                                                    '(apply #'ignore r)))
-                             ((plist-get it :always)
-                              (bydi-with-mock--bind (plist-get it :always)
-                                                    '(apply #'always r)))
-                             ((plist-get it :sometimes)
-                              (bydi-with-mock--bind (plist-get it :sometimes)
-                                                    '(funcall #'bydi-with-mock--sometimes)))))
-                           ((consp it)
-                            (bydi-with-mock--bind (car it) `(apply ,(cdr it) r)))
-                           (t
-                            (bydi-with-mock--bind it))))
-                        (if (listp to-mock) to-mock (list to-mock))))
-     ,@body))
+  (let ((instructions (if (listp to-mock) to-mock (list to-mock))))
+
+    `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
+                (bydi-mock-sometimes t)
+                (bydi-mock-spies ',(cl-loop for i in instructions
+                                            when (and (bydi-with-mock--valid-plistp i)
+                                                      (plist-member i :spy))
+                                            collect (plist-get i :spy)))
+                ,@(delq nil
+                        (mapcar (lambda (it)
+                                  (cond
+                                   ((bydi-with-mock--valid-plistp it)
+                                    (cond
+                                     ((plist-member it :return)
+                                      (bydi-with-mock--bind (plist-get it :mock)
+                                                            (plist-get it :return)))
+                                     ((plist-member it :with)
+                                      (bydi-with-mock--bind (plist-get it :mock)
+                                                            `(apply #',(plist-get it :with) r)))
+                                     ((plist-member it :spy) nil)
+
+                                     ;; Short-hands.
+                                     ((plist-member it :ignore)
+                                      (bydi-with-mock--bind (plist-get it :ignore)
+                                                            '(apply #'ignore r)))
+                                     ((plist-member it :always)
+                                      (bydi-with-mock--bind (plist-get it :always)
+                                                            '(apply #'always r)))
+                                     ((plist-member it :sometimes)
+                                      (bydi-with-mock--bind (plist-get it :sometimes)
+                                                            '(funcall #'bydi-with-mock--sometimes)))))
+                                   ((consp it)
+                                    (bydi-with-mock--bind (car it) `(apply ,(cdr it) r)))
+                                   (t
+                                    (bydi-with-mock--bind it))))
+                                instructions)))
+       (bydi-spy--create)
+       ,@body
+       (bydi-spy--clear))))
 
 (defun bydi-with-mock--valid-plistp (plist)
   "Check if PLIST list a valid one."
@@ -83,6 +99,7 @@ plist of shape (:always FUN) that will replace FUN with `always'."
        (or (and (memq :mock plist)
                 (or (memq :return plist)
                     (memq :with plist)))
+           (memq :spy plist)
            (memq :always plist)
            (memq :ignore plist)
            (memq :sometimes plist))))
@@ -113,6 +130,21 @@ Optionally, return RETURN."
       (lambda (&rest r)
         (interactive)
         (apply 'bydi-with-mock--remember (list ',fun r))))))
+
+(defvar bydi-mock-spies nil)
+
+(defun bydi--spy (fun &rest r)
+  "Record invocation of FUN with R, then call it."
+  (bydi-with-mock--remember (intern (subr-name fun)) r)
+  (apply fun r))
+
+(defun bydi-spy--create ()
+  "Record invocations of FUN in history."
+  (mapc (lambda (it) (advice-add it :around #'bydi--spy)) bydi-mock-spies))
+
+(defun bydi-spy--clear ()
+  "Clear all spies."
+  (mapc (lambda (it) (advice-remove it #'bydi--spy)) bydi-mock-spies))
 
 (defalias 'bydi 'bydi-with-mock)
 
