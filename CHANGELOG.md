@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bydi` will now issue warnings if a function belonging to
   `bydi--never-mock` is being mocked.
 
+### Changed
+
+- Source code was refactored to group functions (sometimes renaming them).
+
 ## [v0.1.0]
 
 Initial version as an extraction of my config package.

@@ -16,61 +16,6 @@
 (require 'compat nil t)
 (require 'cl-lib)
 
-;; Macros
-
-(defun bydi-rf (a &rest _r)
-  "Return first argument passed A."
-  a)
-
-(defun bydi-ra (&rest r)
-  "Return all arguments R."
-  r)
-
-(defun bydi-rt (&rest _r)
-  "Return symbol `testing'."
-  'testing)
-
-(defvar bydi-mock-history nil)
-(defvar bydi-mock-sometimes nil)
-
-;; TODO: Implement
-(defvar bydi--never-mock '(fboundp advice-add advice-remove file-exists-p)
-  "Functions that, when mocked, do or may prevent test execution.")
-
-(defun bydi--good-mock-p (to-mock)
-  "Check if TO-MOCK is mockable."
-  (not (memq to-mock bydi--never-mock)))
-
-(defun bydi--warn (to-mock)
-  "Warn about using TO-MOCK in a mock."
-  (display-warning
-   'bydi
-   (format "Mocking %s may lead to issues" to-mock)
-   :warning))
-
-(defun bydi--mock-binding (mock)
-  "Get function and binding for MOCK."
-  (cond
-   ((bydi-with-mock--valid-plistp mock)
-    (cond
-     ((plist-member mock :return)
-      `(,(plist-get mock :mock) ,(plist-get mock :return)))
-     ((plist-member mock :with)
-      `(,(plist-get mock :mock) (apply #',(plist-get mock :with) r)))
-     ((plist-member mock :spy)
-      '(nil nil))
-
-     ;; Short-hands.
-     ((plist-member mock :ignore)
-      `(,(plist-get mock :ignore) (apply #'ignore r)))
-     ((plist-member mock :always)
-      `(,(plist-get mock :always) (apply #'always r)))
-     ((plist-member mock :sometimes)
-      `(,(plist-get mock :sometimes) (funcall #'bydi-with-mock--sometimes)))))
-   ((consp mock)
-    `(,(car mock) (apply ,(cdr mock) r)))
-   (t `(,mock nil))))
-
 (defmacro bydi-with-mock (to-mock &rest body)
   "Evaluate BODY mocking list of function(s) TO-MOCK.
 
@@ -96,129 +41,23 @@ REPLACE."
 
     `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
                 (bydi-mock-sometimes t)
-                (bydi-mock-spies ',(cl-loop for i in instructions
-                                            when (and (bydi-with-mock--valid-plistp i)
-                                                      (plist-member i :spy))
-                                            collect (plist-get i :spy)))
+                (bydi-spies ',(cl-loop for i in instructions
+                                       when (and (bydi-mock--valid-plistp i)
+                                                 (plist-member i :spy))
+                                       collect (plist-get i :spy)))
                 ,@(delq nil
                         (mapcar (lambda (it)
-                                  (cl-destructuring-bind (bind to) (bydi--mock-binding it)
+                                  (cl-destructuring-bind (bind to) (bydi-mock--binding it)
                                     (when bind
                                       (unless (bydi--good-mock-p bind)
-                                        (bydi--warn bind))
-                                      (bydi-with-mock--bind bind to))))
+                                        (bydi-warn--bad-mock bind))
+                                      (bydi-mock--bind bind to))))
                                 instructions)))
        (bydi-spy--create)
        ,@body
        (bydi-spy--clear))))
 
-(defun bydi-with-mock--valid-plistp (plist)
-  "Check if PLIST list a valid one."
-  (and (plistp plist)
-       (or (and (memq :mock plist)
-                (or (memq :return plist)
-                    (memq :with plist)))
-           (memq :spy plist)
-           (memq :always plist)
-           (memq :ignore plist)
-           (memq :sometimes plist))))
-
-(defun bydi-with-mock--remember (fun args)
-  "Remember function FUN and return ARGS."
-  (let* ((prev (gethash fun bydi-mock-history))
-         (val (if prev (push args prev) (list args))))
-
-    (puthash fun val bydi-mock-history)
-    args))
-
-(defun bydi-with-mock--sometimes ()
-  "Return value of `bydi-mock-sometimes'."
-  bydi-mock-sometimes)
-
-(defun bydi-with-mock--bind (fun &optional return)
-  "Return template to override FUN.
-
-Optionally, return RETURN."
-  (if return
-      `((symbol-function ',fun)
-        (lambda (&rest r)
-          (interactive)
-          (apply 'bydi-with-mock--remember (list ',fun r))
-          ,return))
-    `((symbol-function ',fun)
-      (lambda (&rest r)
-        (interactive)
-        (apply 'bydi-with-mock--remember (list ',fun r))))))
-
-(defvar bydi-mock-spies nil)
-
-(defvar bydi-spy--name 'bydi-spi)
-
-(defun bydi--spy (fun &rest r)
-  "Record invocation of FUN with R, then call it."
-  (bydi-with-mock--remember fun r))
-
-(defun bydi-spy--create ()
-  "Record invocations of FUN in history."
-  (mapc (lambda (it)
-          (advice-add
-           it :after
-           (lambda (args) (bydi--spy it args))
-           (list (cons 'name bydi-spy--name))))
-        bydi-mock-spies))
-
-(defun bydi-spy--clear ()
-  "Clear all spies."
-  (mapc (lambda (it) (advice-remove it bydi-spy--name)) bydi-mock-spies))
-
-(defalias 'bydi 'bydi-with-mock)
-
-(defun bydi-clear-mocks ()
-  "Clear mock history."
-  (setq bydi-mock-history (make-hash-table :test 'equal)))
-
-(defun bydi-toggle-sometimes ()
-  "Toggle `bydi-mock-sometimes'."
-  (setq bydi-mock-sometimes (not bydi-mock-sometimes)))
-
-(defun bydi--safe-exp (sexp)
-  "Get SEXP as a quoted list."
-  (if (listp sexp) sexp `(list ,sexp)))
-
-(defun bydi--was-called (_fun _expected actual)
-  "Verify that ACTUAL represents a function call."
-  (not (equal 'not-called actual)))
-(put 'bydi--was-called 'ert-explainer 'bydi--explain-call)
-
-(defun bydi--was-not-called (_fun _expected actual)
-  "Verify that ACTUAL represents missing function call."
-  (equal 'not-called actual))
-(put 'bydi--was-not-called 'ert-explainer 'bydi--explain-call)
-
-(defun bydi--was-called-with (_fun expected actual)
-  "Verify that EXPECTED represents ACTUAL arguments."
-  (equal expected actual))
-(put 'bydi--was-called-with 'ert-explainer 'bydi--explain-call)
-
-(defun bydi--was-called-n-times (_fun expected actual)
-  "Verify that EXPECTED number matches ACTUAL."
-  (eq expected actual))
-(put 'bydi--was-called-n-times 'ert-explainer 'bydi--explain-call)
-
-(defun bydi--readable (data)
-  "Make sure DATA is readable."
-  (cond
-   ((null data)
-    'null)
-   (t data)))
-
-(defun bydi--explain-call (fun expected actual)
-  "Explain that FUN was called with ACTUAL not EXPECTED."
-  (if (equal actual 'not-called)
-      `(no-call ',fun)
-    `(call ',fun
-           :expected ,(bydi--readable expected)
-           :actual ,(bydi--readable actual))))
+;; Call verification
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
@@ -248,6 +87,167 @@ Optionally, return RETURN."
   "Check if mocked FUN was called EXPECTED times."
   `(let ((actual (length (gethash ',fun bydi-mock-history))))
      (should (bydi--was-called-n-times ',fun ,expected actual))))
+
+
+(defun bydi--was-called (_fun _expected actual)
+  "Verify that ACTUAL represents a function call."
+  (not (equal 'not-called actual)))
+
+(defun bydi--was-not-called (_fun _expected actual)
+  "Verify that ACTUAL represents missing function call."
+  (equal 'not-called actual))
+
+(defun bydi--was-called-with (_fun expected actual)
+  "Verify that EXPECTED represents ACTUAL arguments."
+  (equal expected actual))
+
+(defun bydi--was-called-n-times (_fun expected actual)
+  "Verify that EXPECTED number matches ACTUAL."
+  (eq expected actual))
+
+;; History:
+
+(defvar bydi-mock-history nil)
+
+(defun bydi-mock--remember (fun args)
+  "Remember function FUN and return ARGS."
+  (let* ((prev (gethash fun bydi-mock-history))
+         (val (if prev (push args prev) (list args))))
+
+    (puthash fun val bydi-mock-history)
+    args))
+
+;; Binding
+
+(defun bydi-mock--binding (mock)
+  "Get function and binding for MOCK."
+  (cond
+   ((bydi-mock--valid-plistp mock)
+    (cond
+     ((plist-member mock :return)
+      `(,(plist-get mock :mock) ,(plist-get mock :return)))
+     ((plist-member mock :with)
+      `(,(plist-get mock :mock) (apply #',(plist-get mock :with) r)))
+     ((plist-member mock :spy)
+      '(nil nil))
+
+     ;; Short-hands.
+     ((plist-member mock :ignore)
+      `(,(plist-get mock :ignore) (apply #'ignore r)))
+     ((plist-member mock :always)
+      `(,(plist-get mock :always) (apply #'always r)))
+     ((plist-member mock :sometimes)
+      `(,(plist-get mock :sometimes) (funcall #'bydi-mock--sometimes)))))
+   ((consp mock)
+    `(,(car mock) (apply ,(cdr mock) r)))
+   (t `(,mock nil))))
+
+(defun bydi-mock--bind (fun &optional return)
+  "Return template to override FUN.
+
+Optionally, return RETURN."
+  (if return
+      `((symbol-function ',fun)
+        (lambda (&rest r)
+          (interactive)
+          (apply 'bydi-mock--remember (list ',fun r))
+          ,return))
+    `((symbol-function ',fun)
+      (lambda (&rest r)
+        (interactive)
+        (apply 'bydi-mock--remember (list ',fun r))))))
+
+(defun bydi-mock--valid-plistp (plist)
+  "Check if PLIST list a valid one."
+  (and (plistp plist)
+       (or (and (memq :mock plist)
+                (or (memq :return plist)
+                    (memq :with plist)))
+           (memq :spy plist)
+           (memq :always plist)
+           (memq :ignore plist)
+           (memq :sometimes plist))))
+
+(defvar bydi--never-mock '(fboundp advice-add advice-remove file-exists-p)
+  "Functions that, when mocked, do or may prevent test execution.")
+
+(defun bydi--good-mock-p (to-mock)
+  "Check if TO-MOCK is mockable."
+  (not (memq to-mock bydi--never-mock)))
+
+(defun bydi-warn--bad-mock (to-mock)
+  "Warn about using TO-MOCK in a mock."
+  (display-warning
+   'bydi
+   (format "Mocking %s may lead to issues" to-mock)
+   :warning))
+
+;; Spying
+
+(defvar bydi-spies nil)
+
+(defvar bydi-spy--advice-name 'bydi-spi)
+
+(defun bydi-spy--remember (fun &rest r)
+  "Record invocation of FUN with R, then call it."
+  (bydi-mock--remember fun r))
+
+(defun bydi-spy--create ()
+  "Record invocations of FUN in history."
+  (mapc (lambda (it)
+          (advice-add
+           it :after
+           (lambda (args) (bydi-spy--remember it args))
+           (list (cons 'name bydi-spy--advice-name))))
+        bydi-spies))
+
+(defun bydi-spy--clear ()
+  "Clear all spies."
+  (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spies))
+
+;; Toggling
+
+(defvar bydi-mock-sometimes nil)
+
+(defun bydi-mock--sometimes ()
+  "Return value of `bydi-mock-sometimes'."
+  bydi-mock-sometimes)
+
+;; Explaining
+
+(defun bydi--readable (data)
+  "Make sure DATA is readable."
+  (cond
+   ((null data)
+    'null)
+   (t data)))
+
+(defun bydi-explain--explain-actual (fun expected actual)
+  "Explain that FUN was called with ACTUAL not EXPECTED."
+  (if (equal actual 'not-called)
+      `(no-call ',fun)
+    `(call ',fun
+           :expected ,(bydi--readable expected)
+           :actual ,(bydi--readable actual))))
+
+(put 'bydi--was-called 'ert-explainer 'bydi-explain--explain-actual)
+(put 'bydi--was-not-called 'ert-explainer 'bydi-explain--explain-actual)
+(put 'bydi--was-called-with 'ert-explainer 'bydi-explain--explain-actual)
+(put 'bydi--was-called-n-times 'ert-explainer 'bydi-explain--explain-actual)
+
+;; Other macros
+
+(defun bydi-rf (a &rest _r)
+  "Return first argument passed A."
+  a)
+
+(defun bydi-ra (&rest r)
+  "Return all arguments R."
+  r)
+
+(defun bydi-rt (&rest _r)
+  "Return symbol `testing'."
+  'testing)
 
 (defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."
@@ -286,29 +286,20 @@ The associated file buffer is also killed."
              (push ,filename bydi--temp-files))
            (delete-file ,tmp-file))))))
 
-(defun bydi--report (&rest _)
+;; Reporting
+
+(defun bydi-coverage--report (&rest _)
   "Print created temp files."
   (when bydi--temp-files
     (message
      "\nCreated the following temp files:\n%s"
      bydi--temp-files)))
 
-(defvar bydi-report--text-file "./coverage/results.txt"
+(defvar bydi-coverage--text-file "./coverage/results.txt"
   "The file used to store text coverage.")
 
-(defvar bydi-report--json-file "./coverage/.resultset.json"
+(defvar bydi-coverage--json-file "./coverage/.resultset.json"
   "The file used to store the JSON coverage.")
-
-(defun bydi--matches-in-string (regexp str)
-  "Return all matches of REGEXP in STR."
-  (let ((matches nil))
-
-    (with-temp-buffer
-      (insert str)
-      (goto-char (point-min))
-      (while (re-search-forward regexp nil t)
-        (push (match-string 1) matches)))
-    matches))
 
 (defun bydi-coverage--add (buf type)
   "Add all numbers of TYPE in buffer BUF."
@@ -321,63 +312,49 @@ The associated file buffer is also killed."
 (defun bydi-coverage--average ()
   "Calculate the average."
   (with-temp-buffer
-    (insert-file-contents bydi-report--text-file)
+    (insert-file-contents bydi-coverage--text-file)
 
     (when-let* ((relevant (bydi-coverage--add (current-buffer) "Relevant"))
                 (covered (bydi-coverage--add (current-buffer) "Covered")))
 
       (string-to-number (format "%.2f%%" (* 100 (/ (float covered) relevant)))))))
 
-;; Integration
+;; Utility
 
-(defvar bydi-env--coverage-with-json "COVERAGE_WITH_JSON"
+(defun bydi--safe-exp (sexp)
+  "Get SEXP as a quoted list."
+  (if (listp sexp) sexp `(list ,sexp)))
+
+(defun bydi--matches-in-string (regexp str)
+  "Return all matches of REGEXP in STR."
+  (let ((matches nil))
+
+    (with-temp-buffer
+      (insert str)
+      (goto-char (point-min))
+      (while (re-search-forward regexp nil t)
+        (push (match-string 1) matches)))
+    matches))
+
+;; Setup helpers
+
+(defvar bydi-setup--env-coverage-with-json "COVERAGE_WITH_JSON"
   "If set, SimpleCov (JSON) format is used.")
 
-(defvar bydi-env--ci "CI"
+(defvar bydi-setup--env-ci "CI"
   "Set if in a CI environment.")
 
-(defvar bydi-env--github-workspace "GITHUB_WORKSPACE"
+(defvar bydi-setup--env-github-workspace "GITHUB_WORKSPACE"
   "Location of the project in GitHub action.")
 
-(defvar undercover-force-coverage)
-(defvar undercover--merge-report)
-(declare-function undercover--setup "ext:undercover.el")
-
-(defun bydi-undercover-setup (patterns)
-  "Set up `undercover' for PATTERNS."
-  (when (require 'undercover nil t)
-    (message "Setting up `undercover' with %s" patterns)
-
-    (let ((report-format 'text)
-          (report-file bydi-report--text-file))
-
-      (setq undercover-force-coverage t)
-
-      (cond
-       ((getenv bydi-env--ci)
-        (setq report-format 'lcov
-              report-file nil))
-
-       ((getenv bydi-env--coverage-with-json)
-        (setq undercover--merge-report nil
-              report-format 'simplecov
-              report-file bydi-report--json-file)))
-
-      (undercover--setup
-       (append patterns
-               (list
-                (list :report-format report-format)
-                (list :report-file report-file)
-                (list :send-report nil)))))))
-
-(defun bydi-path-setup (&optional paths)
+(defun bydi-setup--paths (paths)
   "Set up `load-path'.
 
 Optionally, set up additional relative PATHS.
 
 This function returns a list of the directories added to the
 `load-path'."
-  (let* ((source-dir (expand-file-name (or (getenv bydi-env--github-workspace)
+  (let* ((source-dir (expand-file-name (or (getenv bydi-setup--env-github-workspace)
                                            default-directory)))
          (paths (append (list source-dir) (mapcar (lambda (it) (expand-file-name it source-dir)) paths))))
 
@@ -388,29 +365,95 @@ This function returns a list of the directories added to the
 
     paths))
 
-(defun bydi-ert-runner-setup (&optional reporter)
+(defun bydi-setup--ert-runner (reporter)
   "Set up `ert-runner'.
 
 An optional REPORTER function can be passed."
   (add-hook
    'ert-runner-reporter-run-ended-functions
-   #'bydi--report)
+   #'bydi-coverage--report)
 
   (when reporter
     (add-hook
      'ert-runner-reporter-run-ended-functions
      reporter)))
 
+(defvar undercover-force-coverage)
+(defvar undercover--merge-report)
+(declare-function undercover--setup "ext:undercover.el")
+
+(defun bydi-setup--undercover (patterns)
+  "Set up `undercover' for PATTERNS."
+  (when (require 'undercover nil t)
+    (message "Setting up `undercover' with %s" patterns)
+
+    (let ((report-format 'text)
+          (report-file bydi-coverage--text-file))
+
+      (setq undercover-force-coverage t)
+
+      (cond
+       ((getenv bydi-setup--env-ci)
+        (setq report-format 'lcov
+              report-file nil))
+
+       ((getenv bydi-setup--env-coverage-with-json)
+        (setq undercover--merge-report nil
+              report-format 'simplecov
+              report-file bydi-coverage--json-file)))
+
+      (undercover--setup
+       (append patterns
+               (list
+                (list :report-format report-format)
+                (list :report-file report-file)
+                (list :send-report nil)))))))
+
+;; API
+
+(defun bydi-clear-mocks ()
+  "Clear mock history."
+  (setq bydi-mock-history (make-hash-table :test 'equal)))
+
+(defun bydi-toggle-sometimes ()
+  "Toggle `bydi-mock-sometimes'."
+  (setq bydi-mock-sometimes (not bydi-mock-sometimes)))
+
+;;;###autoload
+(defalias 'bydi 'bydi-with-mock)
+
+;;;###autoload
+(defun bydi-path-setup (&optional paths)
+  "Set up `load-path'.
+
+Optionally, set up additional relative PATHS.
+
+This function returns a list of the directories added to the
+`load-path'."
+  (bydi-setup--paths paths))
+
+;;;###autoload
+(defun bydi-ert-runner-setup (&optional reporter)
+  "Set up `ert-runner'.
+
+An optional REPORTER function can be passed."
+  (bydi-setup--ert-runner reporter))
+
+;;;###autoload
+(defun bydi-undercover-setup (patterns)
+  "Set up `undercover' for PATTERNS."
+  (bydi-setup--undercover patterns))
+
 ;;;###autoload
 (defun bydi-calculate-coverage ()
   "Calculate the coverage using the results file."
   (interactive)
 
-  (if (file-exists-p bydi-report--text-file)
+  (if (file-exists-p bydi-coverage--text-file)
       (let ((average (bydi-coverage--average)))
 
         (message "Combined coverage: %s%%" average))
-    (user-error "Text report %s doesn't exist" bydi-report--text-file)))
+    (user-error "Text report %s doesn't exist" bydi-coverage--text-file)))
 
 (provide 'bydi)
 
