@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bydi` now accepts `(:spy fun)` that allows spying on a function
   without replacing it so it can be used in conjunction with
   `bydi-was-{not}-called-{n-times, with}`.
+- `bydi` will now issue warnings if a function belonging to
+  `bydi--never-mock` is being mocked.
 
 ## [v0.1.0]
 

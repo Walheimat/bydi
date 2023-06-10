@@ -159,6 +159,29 @@
       (should (always))
       (bydi-spy--clear))))
 
+(ert-deftest bydi-with-mock--unmockable ()
+  (bydi-with-mock (bydi--warn)
+    (let ((bydi--never-mock '(new-line)))
+      (bydi-match-expansion
+       (bydi-with-mock ((:ignore new-line))
+         nil)
+       '(cl-letf*
+           ((bydi-mock-history
+             (make-hash-table :test 'equal))
+            (bydi-mock-sometimes t)
+            (bydi-mock-spies 'nil)
+            ((symbol-function 'new-line)
+             (lambda
+               (&rest r)
+               (interactive)
+               (apply 'bydi-with-mock--remember
+                      (list 'new-line r))
+               (apply #'ignore r))))
+         (bydi-spy--create)
+         nil
+         (bydi-spy--clear))))
+    (bydi-was-called bydi--warn)))
+
 (ert-deftest bydi-clear-mocks ()
   (let ((bydi-mock-history nil))
     (bydi-clear-mocks)
@@ -292,7 +315,7 @@
   (let ((load-path nil)
         (default-directory "/tmp"))
 
-    (bydi ((:mock getenv :with ignore))
+    (bydi ((:ignore getenv))
 
       (bydi-path-setup (list "test" "mock"))
 
@@ -333,6 +356,11 @@
     (bydi-was-called file-name-extension)
     (bydi-was-called-n-times file-name-extension 3)
     (bydi-was-called-nth-with file-name-extension "two.org" 1)))
+
+(ert-deftest bydi--warn ()
+  (bydi display-warning
+    (bydi--warn 'ignore)
+    (bydi-was-called-with display-warning (list 'bydi "Mocking ignore may lead to issues" :warning))))
 
 ;;; bydi-test.el ends here
 

@@ -14,6 +14,7 @@
 
 (require 'ert-x)
 (require 'compat nil t)
+(require 'cl-lib)
 
 ;; Macros
 
@@ -31,6 +32,44 @@
 
 (defvar bydi-mock-history nil)
 (defvar bydi-mock-sometimes nil)
+
+;; TODO: Implement
+(defvar bydi--never-mock '(fboundp advice-add advice-remove file-exists-p)
+  "Functions that, when mocked, do or may prevent test execution.")
+
+(defun bydi--good-mock-p (to-mock)
+  "Check if TO-MOCK is mockable."
+  (not (memq to-mock bydi--never-mock)))
+
+(defun bydi--warn (to-mock)
+  "Warn about using TO-MOCK in a mock."
+  (display-warning
+   'bydi
+   (format "Mocking %s may lead to issues" to-mock)
+   :warning))
+
+(defun bydi--mock-binding (mock)
+  "Get function and binding for MOCK."
+  (cond
+   ((bydi-with-mock--valid-plistp mock)
+    (cond
+     ((plist-member mock :return)
+      `(,(plist-get mock :mock) ,(plist-get mock :return)))
+     ((plist-member mock :with)
+      `(,(plist-get mock :mock) (apply #',(plist-get mock :with) r)))
+     ((plist-member mock :spy)
+      '(nil nil))
+
+     ;; Short-hands.
+     ((plist-member mock :ignore)
+      `(,(plist-get mock :ignore) (apply #'ignore r)))
+     ((plist-member mock :always)
+      `(,(plist-get mock :always) (apply #'always r)))
+     ((plist-member mock :sometimes)
+      `(,(plist-get mock :sometimes) (funcall #'bydi-with-mock--sometimes)))))
+   ((consp mock)
+    `(,(car mock) (apply ,(cdr mock) r)))
+   (t `(,mock nil))))
 
 (defmacro bydi-with-mock (to-mock &rest body)
   "Evaluate BODY mocking list of function(s) TO-MOCK.
@@ -63,31 +102,11 @@ REPLACE."
                                             collect (plist-get i :spy)))
                 ,@(delq nil
                         (mapcar (lambda (it)
-                                  (cond
-                                   ((bydi-with-mock--valid-plistp it)
-                                    (cond
-                                     ((plist-member it :return)
-                                      (bydi-with-mock--bind (plist-get it :mock)
-                                                            (plist-get it :return)))
-                                     ((plist-member it :with)
-                                      (bydi-with-mock--bind (plist-get it :mock)
-                                                            `(apply #',(plist-get it :with) r)))
-                                     ((plist-member it :spy) nil)
-
-                                     ;; Short-hands.
-                                     ((plist-member it :ignore)
-                                      (bydi-with-mock--bind (plist-get it :ignore)
-                                                            '(apply #'ignore r)))
-                                     ((plist-member it :always)
-                                      (bydi-with-mock--bind (plist-get it :always)
-                                                            '(apply #'always r)))
-                                     ((plist-member it :sometimes)
-                                      (bydi-with-mock--bind (plist-get it :sometimes)
-                                                            '(funcall #'bydi-with-mock--sometimes)))))
-                                   ((consp it)
-                                    (bydi-with-mock--bind (car it) `(apply ,(cdr it) r)))
-                                   (t
-                                    (bydi-with-mock--bind it))))
+                                  (cl-destructuring-bind (bind to) (bydi--mock-binding it)
+                                    (when bind
+                                      (unless (bydi--good-mock-p bind)
+                                        (bydi--warn bind))
+                                      (bydi-with-mock--bind bind to))))
                                 instructions)))
        (bydi-spy--create)
        ,@body
