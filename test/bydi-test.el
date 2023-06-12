@@ -247,7 +247,9 @@
   (bydi-match-expansion
    (bydi-match-expansion
     (should t))
-   '(should (pcase (macroexpand-1 '(should t))))))
+   '(should
+    (bydi-match-expansion--matches
+     '(should t)))))
 
 (ert-deftest bydi-should-every ()
   (bydi-match-expansion

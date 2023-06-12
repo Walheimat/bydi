@@ -107,6 +107,18 @@ REPLACE."
   "Verify that EXPECTED number matches ACTUAL."
   (eq expected actual))
 
+;; Matching
+
+(defmacro bydi-match-expansion (form &rest value)
+  "Match expansion of FORM against VALUE."
+  `(should (bydi-match-expansion--matches ',form ,@value)))
+
+(defun bydi-match-expansion--matches (form value)
+  "Make sure FORM matches VALUE."
+  (eval
+   `(pcase (macroexpand-1 ',form)
+      (',value t))))
+
 ;; History:
 
 (defvar bydi-mock-history nil)
@@ -237,6 +249,12 @@ Optionally, return RETURN."
 (put 'bydi--was-called-with 'ert-explainer 'bydi-explain--explain-actual)
 (put 'bydi--was-called-n-times 'ert-explainer 'bydi-explain--explain-actual)
 
+(defun bydi-explain--explain-mismatch (a b)
+  "Explain that A didn't match B."
+  `(no-match :wanted ,(macroexpand-1 a) :got ,b))
+
+(put 'bydi-match-expansion--matches 'ert-explainer 'bydi-explain--explain-mismatch)
+
 ;; Other macros
 
 (defun bydi-rf (a &rest _r)
@@ -250,11 +268,6 @@ Optionally, return RETURN."
 (defun bydi-rt (&rest _r)
   "Return symbol `testing'."
   'testing)
-
-(defmacro bydi-match-expansion (form &rest value)
-  "Match expansion of FORM against VALUE."
-  `(should (pcase (macroexpand-1 ',form)
-             ,@(mapcar #'(lambda (x) (list x t)) value))))
 
 (cl-defmacro bydi-should-every (forms &key check expected)
   "CHECK if all FORMS have EXPECTED value using CHECK."
