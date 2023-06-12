@@ -1,4 +1,4 @@
-;;; bydi.el --- Test macros and setups -*- lexical-binding: t; -*-
+;;; bydi.el --- Mocking macros -*- lexical-binding: t; -*-
 
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
 ;; Homepage: https://github.com/Walheimat/bydi
@@ -8,13 +8,15 @@
 
 ;;; Commentary:
 ;;
-;; Helper macros and functions.
+;; `bydi' allows you to mock (or spy on) functions and verify their
+;; call history in various ways. You can provide your own mock
+;; implementation, define their return value or use a short-hand.
 
 ;;; Code:
 
 (require 'ert-x)
-(require 'compat nil t)
 (require 'cl-lib)
+(require 'compat nil t)
 
 (defmacro bydi-with-mock (to-mock &rest body)
   "Evaluate BODY mocking list of function(s) TO-MOCK.
