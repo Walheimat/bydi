@@ -202,16 +202,13 @@ Optionally, return RETURN."
 
 (defvar bydi-spy--advice-name 'bydi-spi)
 
-(defun bydi-spy--remember (fun &rest r)
-  "Record invocation of FUN with R, then call it."
-  (bydi-mock--remember fun r))
-
 (defun bydi-spy--create ()
   "Record invocations of FUN in history."
   (mapc (lambda (it)
           (advice-add
            it :after
-           (lambda (args) (bydi-spy--remember it args))
+           (lambda (&rest args)
+             (apply 'bydi-mock--remember (list it args)))
            (list (cons 'name bydi-spy--advice-name))))
         bydi-spies))
 
