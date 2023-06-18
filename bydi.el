@@ -427,9 +427,14 @@ An optional REPORTER function can be passed."
   "Clear mock history."
   (setq bydi-mock-history (make-hash-table :test 'equal)))
 
-(defun bydi-toggle-sometimes ()
-  "Toggle `bydi-mock-sometimes'."
-  (setq bydi-mock-sometimes (not bydi-mock-sometimes)))
+(defun bydi-toggle-sometimes (&optional no-clear)
+  "Toggle `bydi-mock-sometimes'.
+
+Unless NO-CLEAR is t, this also calls `bydi-clea-mocks'."
+  (setq bydi-mock-sometimes (not bydi-mock-sometimes))
+
+  (unless no-clear
+    (bydi-clear-mocks)))
 
 ;;;###autoload
 (defalias 'bydi 'bydi-with-mock)

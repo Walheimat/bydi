@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Macro `bydi-match-expansion` now has its own `ert-explainer` to show
   the mismatch between actual and expected expansion.
 - Switched to using `dinghy`.
+- Calling `bydi-toggle-sometimes` now automatically calls
+  `bydi-clear-mocks` unless it is called with `t` to prevent that.
 
 ## [v0.2.0]
 

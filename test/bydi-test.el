@@ -188,17 +188,22 @@
     (should bydi-mock-history)))
 
 (ert-deftest bydi-toggle-sometimes ()
-  (bydi ((:sometimes buffer-live-p))
+  (bydi ((:sometimes buffer-live-p)
+         (:spy bydi-clear-mocks))
 
     (should (buffer-live-p))
 
     (bydi-toggle-sometimes)
 
     (should-not (buffer-live-p))
+    (bydi-was-called bydi-clear-mocks)
 
-    (bydi-toggle-sometimes)
+    ;; Need to clear manually here.
+    (setq bydi-mock-history (make-hash-table :test 'equal))
+    (bydi-toggle-sometimes t)
 
-    (should (buffer-live-p))))
+    (should (buffer-live-p))
+    (bydi-was-not-called bydi-clear-mocks)))
 
 (ert-deftest bydi-was-called ()
   (bydi-match-expansion
@@ -294,6 +299,7 @@
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format text)
                                                (:report-file "./coverage/results.txt")
                                                (:send-report nil))))))
+
 (ert-deftest bydi-undercover-setup--ci ()
   (bydi (undercover--setup
          (:mock getenv :with (lambda (r) (string= "CI" r))))
@@ -303,6 +309,7 @@
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format lcov)
                                                (:report-file nil)
                                                (:send-report nil))))))
+
 (ert-deftest bydi-undercover-setup--json ()
   (bydi (undercover--setup
          (:mock getenv :with (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
