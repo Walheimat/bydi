@@ -73,6 +73,8 @@ REPLACE."
 
 (defmacro bydi-was-called-with (fun expected)
   "Check if FUN was called with EXPECTED."
+  (declare (indent defun))
+
   (let ((safe-exp (bydi--safe-exp expected)))
 
     `(let ((actual (gethash ',fun bydi-mock-history)))
