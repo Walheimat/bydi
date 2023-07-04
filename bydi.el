@@ -59,7 +59,7 @@ REPLACE."
        ,@body
        (bydi-spy--clear))))
 
-;; Call verification
+;;; -- Call verification
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
@@ -92,7 +92,6 @@ REPLACE."
   `(let ((actual (length (gethash ',fun bydi-mock-history))))
      (should (bydi--was-called-n-times ',fun ,expected actual))))
 
-
 (defun bydi--was-called (_fun _expected actual)
   "Verify that ACTUAL represents a function call."
   (not (equal 'not-called actual)))
@@ -109,7 +108,7 @@ REPLACE."
   "Verify that EXPECTED number matches ACTUAL."
   (eq expected actual))
 
-;; Matching
+;;; -- Matching
 
 (defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."
@@ -121,7 +120,7 @@ REPLACE."
    `(pcase (macroexpand-1 ',form)
       (',value t))))
 
-;; History:
+;;; -- History
 
 (defvar bydi-mock-history nil)
 
@@ -133,7 +132,7 @@ REPLACE."
     (puthash fun val bydi-mock-history)
     args))
 
-;; Binding
+;;; -- Binding
 
 (defun bydi-mock--binding (mock)
   "Get function and binding for MOCK."
@@ -198,7 +197,7 @@ Optionally, return RETURN."
    (format "Mocking %s may lead to issues" to-mock)
    :warning))
 
-;; Spying
+;;; -- Spying
 
 (defvar bydi-spies nil)
 
@@ -218,7 +217,7 @@ Optionally, return RETURN."
   "Clear all spies."
   (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spies))
 
-;; Toggling
+;;; -- Toggling
 
 (defvar bydi-mock-sometimes nil)
 
@@ -226,7 +225,7 @@ Optionally, return RETURN."
   "Return value of `bydi-mock-sometimes'."
   bydi-mock-sometimes)
 
-;; Explaining
+;;; -- Explaining
 
 (defun bydi--readable (data)
   "Make sure DATA is readable."
@@ -254,7 +253,7 @@ Optionally, return RETURN."
 
 (put 'bydi-match-expansion--matches 'ert-explainer 'bydi-explain--explain-mismatch)
 
-;; Other macros
+;;; -- Other macros
 
 (defun bydi-rf (a &rest _r)
   "Return first argument passed A."
@@ -300,7 +299,7 @@ The associated file buffer is also killed."
              (push ,filename bydi--temp-files))
            (delete-file ,tmp-file))))))
 
-;; Reporting
+;;; -- Reporting
 
 (defun bydi-coverage--report (&rest _)
   "Print created temp files."
@@ -333,7 +332,7 @@ The associated file buffer is also killed."
 
       (string-to-number (format "%.2f%%" (* 100 (/ (float covered) relevant)))))))
 
-;; Utility
+;;; -- Utility
 
 (defun bydi--safe-exp (sexp)
   "Get SEXP as a quoted list."
@@ -350,7 +349,7 @@ The associated file buffer is also killed."
         (push (match-string 1) matches)))
     matches))
 
-;; Setup helpers
+;;; -- Setup helpers
 
 (defvar bydi-setup--env-coverage-with-json "COVERAGE_WITH_JSON"
   "If set, SimpleCov (JSON) format is used.")
@@ -423,7 +422,7 @@ An optional REPORTER function can be passed."
                 (list :report-file report-file)
                 (list :send-report nil)))))))
 
-;; API
+;;; -- API
 
 (defun bydi-clear-mocks ()
   "Clear mock history."
