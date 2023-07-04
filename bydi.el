@@ -18,6 +18,27 @@
 (require 'cl-lib)
 (require 'compat nil t)
 
+;;; -- Variables
+
+(defvar bydi--temp-files nil)
+(defvar bydi-mock-history nil)
+(defvar bydi--never-mock '(fboundp advice-add advice-remove file-exists-p)
+  "Functions that, when mocked, do or may prevent test execution.")
+(defvar bydi-spies nil)
+
+(defvar bydi-spy--advice-name 'bydi-spi)
+(defvar bydi-mock-sometimes nil)
+(defvar bydi-setup--env-coverage-with-json "COVERAGE_WITH_JSON"
+  "If set, SimpleCov (JSON) format is used.")
+
+(defvar bydi-setup--env-ci "CI"
+  "Set if in a CI environment.")
+
+(defvar bydi-setup--env-github-workspace "GITHUB_WORKSPACE"
+  "Location of the project in GitHub action.")
+
+;;; -- Macros
+
 (defmacro bydi-with-mock (to-mock &rest body)
   "Evaluate BODY mocking list of function(s) TO-MOCK.
 
@@ -58,8 +79,6 @@ REPLACE."
        (bydi-spy--create)
        ,@body
        (bydi-spy--clear))))
-
-;;; -- Call verification
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
@@ -108,8 +127,6 @@ REPLACE."
   "Verify that EXPECTED number matches ACTUAL."
   (eq expected actual))
 
-;;; -- Matching
-
 (defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."
   `(should (bydi-match-expansion--matches ',form ,@value)))
@@ -120,9 +137,49 @@ REPLACE."
    `(pcase (macroexpand-1 ',form)
       (',value t))))
 
-;;; -- History
+(defun bydi-rf (a &rest _r)
+  "Return first argument passed A."
+  a)
 
-(defvar bydi-mock-history nil)
+(defun bydi-ra (&rest r)
+  "Return all arguments R."
+  r)
+
+(defun bydi-rt (&rest _r)
+  "Return symbol `testing'."
+  'testing)
+
+(cl-defmacro bydi-should-every (forms &key check expected)
+  "CHECK if all FORMS have EXPECTED value using CHECK."
+  (declare (indent defun))
+  (let ((check (or check 'eq)))
+
+    `(progn ,@(mapcar (lambda (it) `(should (,check ,it ,expected))) forms))))
+
+(defmacro bydi-with-temp-file (filename &rest body)
+  "Create and discard a file.
+
+FILENAME is the name of the file, BODY the form to execute while
+the file is alive.
+
+The associated file buffer is also killed."
+  (declare (indent defun))
+
+  (let ((tmp-file (expand-file-name filename "/tmp")))
+
+    `(progn
+       (let ((bydi-tmp-file ,tmp-file))
+
+         (make-empty-file ,tmp-file)
+
+         (unwind-protect
+             (progn ,@body)
+           (when (get-buffer ,filename)
+             (kill-buffer ,filename)
+             (push ,filename bydi--temp-files))
+           (delete-file ,tmp-file))))))
+
+;;; -- Functionality
 
 (defun bydi-mock--remember (fun args)
   "Remember function FUN and return ARGS."
@@ -131,8 +188,6 @@ REPLACE."
 
     (puthash fun val bydi-mock-history)
     args))
-
-;;; -- Binding
 
 (defun bydi-mock--binding (mock)
   "Get function and binding for MOCK."
@@ -183,9 +238,6 @@ Optionally, return RETURN."
            (memq :ignore plist)
            (memq :sometimes plist))))
 
-(defvar bydi--never-mock '(fboundp advice-add advice-remove file-exists-p)
-  "Functions that, when mocked, do or may prevent test execution.")
-
 (defun bydi--good-mock-p (to-mock)
   "Check if TO-MOCK is mockable."
   (not (memq to-mock bydi--never-mock)))
@@ -196,12 +248,6 @@ Optionally, return RETURN."
    'bydi
    (format "Mocking %s may lead to issues" to-mock)
    :warning))
-
-;;; -- Spying
-
-(defvar bydi-spies nil)
-
-(defvar bydi-spy--advice-name 'bydi-spi)
 
 (defun bydi-spy--create ()
   "Record invocations of FUN in history."
@@ -217,15 +263,10 @@ Optionally, return RETURN."
   "Clear all spies."
   (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spies))
 
-;;; -- Toggling
-
-(defvar bydi-mock-sometimes nil)
 
 (defun bydi-mock--sometimes ()
   "Return value of `bydi-mock-sometimes'."
   bydi-mock-sometimes)
-
-;;; -- Explaining
 
 (defun bydi--readable (data)
   "Make sure DATA is readable."
@@ -253,85 +294,6 @@ Optionally, return RETURN."
 
 (put 'bydi-match-expansion--matches 'ert-explainer 'bydi-explain--explain-mismatch)
 
-;;; -- Other macros
-
-(defun bydi-rf (a &rest _r)
-  "Return first argument passed A."
-  a)
-
-(defun bydi-ra (&rest r)
-  "Return all arguments R."
-  r)
-
-(defun bydi-rt (&rest _r)
-  "Return symbol `testing'."
-  'testing)
-
-(cl-defmacro bydi-should-every (forms &key check expected)
-  "CHECK if all FORMS have EXPECTED value using CHECK."
-  (declare (indent defun))
-  (let ((check (or check 'eq)))
-
-    `(progn ,@(mapcar (lambda (it) `(should (,check ,it ,expected))) forms))))
-
-(defvar bydi--temp-files nil)
-
-(defmacro bydi-with-temp-file (filename &rest body)
-  "Create and discard a file.
-
-FILENAME is the name of the file, BODY the form to execute while
-the file is alive.
-
-The associated file buffer is also killed."
-  (declare (indent defun))
-
-  (let ((tmp-file (expand-file-name filename "/tmp")))
-
-    `(progn
-       (let ((bydi-tmp-file ,tmp-file))
-
-         (make-empty-file ,tmp-file)
-
-         (unwind-protect
-             (progn ,@body)
-           (when (get-buffer ,filename)
-             (kill-buffer ,filename)
-             (push ,filename bydi--temp-files))
-           (delete-file ,tmp-file))))))
-
-;;; -- Reporting
-
-(defun bydi-coverage--report (&rest _)
-  "Print created temp files."
-  (when bydi--temp-files
-    (message
-     "\nCreated the following temp files:\n%s"
-     bydi--temp-files)))
-
-(defvar bydi-coverage--text-file "./coverage/results.txt"
-  "The file used to store text coverage.")
-
-(defvar bydi-coverage--json-file "./coverage/.resultset.json"
-  "The file used to store the JSON coverage.")
-
-(defun bydi-coverage--add (buf type)
-  "Add all numbers of TYPE in buffer BUF."
-  (let* ((regex (concat type ": \\(?1:[[:digit:]]+\\)"))
-         (content (with-current-buffer buf (buffer-string)))
-         (numbers (bydi--matches-in-string regex content)))
-
-    (apply '+ (mapcar #'string-to-number numbers))))
-
-(defun bydi-coverage--average ()
-  "Calculate the average."
-  (with-temp-buffer
-    (insert-file-contents bydi-coverage--text-file)
-
-    (when-let* ((relevant (bydi-coverage--add (current-buffer) "Relevant"))
-                (covered (bydi-coverage--add (current-buffer) "Covered")))
-
-      (string-to-number (format "%.2f%%" (* 100 (/ (float covered) relevant)))))))
-
 ;;; -- Utility
 
 (defun bydi--safe-exp (sexp)
@@ -351,15 +313,6 @@ The associated file buffer is also killed."
 
 ;;; -- Setup helpers
 
-(defvar bydi-setup--env-coverage-with-json "COVERAGE_WITH_JSON"
-  "If set, SimpleCov (JSON) format is used.")
-
-(defvar bydi-setup--env-ci "CI"
-  "Set if in a CI environment.")
-
-(defvar bydi-setup--env-github-workspace "GITHUB_WORKSPACE"
-  "Location of the project in GitHub action.")
-
 (defun bydi-setup--paths (paths)
   "Set up `load-path'.
 
@@ -378,56 +331,14 @@ This function returns a list of the directories added to the
 
     paths))
 
-(defun bydi-setup--ert-runner (reporter)
-  "Set up `ert-runner'.
-
-An optional REPORTER function can be passed."
-  (add-hook
-   'ert-runner-reporter-run-ended-functions
-   #'bydi-coverage--report)
-
-  (when reporter
-    (add-hook
-     'ert-runner-reporter-run-ended-functions
-     reporter)))
-
-(defvar undercover-force-coverage)
-(defvar undercover--merge-report)
-(declare-function undercover--setup "ext:undercover.el")
-
-(defun bydi-setup--undercover (patterns)
-  "Set up `undercover' for PATTERNS."
-  (when (require 'undercover nil t)
-    (message "Setting up `undercover' with %s" patterns)
-
-    (let ((report-format 'text)
-          (report-file bydi-coverage--text-file))
-
-      (setq undercover-force-coverage t)
-
-      (cond
-       ((getenv bydi-setup--env-ci)
-        (setq report-format 'lcov
-              report-file nil))
-
-       ((getenv bydi-setup--env-coverage-with-json)
-        (setq undercover--merge-report nil
-              report-format 'simplecov
-              report-file bydi-coverage--json-file)))
-
-      (undercover--setup
-       (append patterns
-               (list
-                (list :report-format report-format)
-                (list :report-file report-file)
-                (list :send-report nil)))))))
-
 ;;; -- API
 
+;;;###autoload
 (defun bydi-clear-mocks ()
   "Clear mock history."
   (setq bydi-mock-history (make-hash-table :test 'equal)))
 
+;;;###autoload
 (defun bydi-toggle-sometimes (&optional no-clear)
   "Toggle `bydi-mock-sometimes'.
 
@@ -449,29 +360,6 @@ Optionally, set up additional relative PATHS.
 This function returns a list of the directories added to the
 `load-path'."
   (bydi-setup--paths paths))
-
-;;;###autoload
-(defun bydi-ert-runner-setup (&optional reporter)
-  "Set up `ert-runner'.
-
-An optional REPORTER function can be passed."
-  (bydi-setup--ert-runner reporter))
-
-;;;###autoload
-(defun bydi-undercover-setup (patterns)
-  "Set up `undercover' for PATTERNS."
-  (bydi-setup--undercover patterns))
-
-;;;###autoload
-(defun bydi-calculate-coverage ()
-  "Calculate the coverage using the results file."
-  (interactive)
-
-  (if (file-exists-p bydi-coverage--text-file)
-      (let ((average (bydi-coverage--average)))
-
-        (message "Combined coverage: %s%%" average))
-    (user-error "Text report %s doesn't exist" bydi-coverage--text-file)))
 
 (provide 'bydi)
 

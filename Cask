@@ -9,3 +9,5 @@
 (package "bydi" "0.2.0" "Mocking facilities")
 
 (package-file "bydi.el")
+
+(files "bydi.el" "bydi-report.el")

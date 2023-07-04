@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Switched to using `dinghy`.
 - Calling `bydi-toggle-sometimes` now automatically calls
   `bydi-clear-mocks` unless it is called with `t` to prevent that.
+- Reporting (`undercover` and `ert-runner`) were factored out into new
+  package `bydi-report`.
 
 ## [v0.2.0]
 

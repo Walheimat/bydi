@@ -279,47 +279,6 @@
             (push "test" bydi--temp-files))
           (delete-file "/tmp/test"))))))
 
-(ert-deftest bydi-coverage--report ()
-  (bydi (message)
-    (let ((bydi--temp-files nil))
-      (bydi-coverage--report)
-      (bydi-was-not-called message)
-
-      (setq bydi--temp-files '("/tmp/test"))
-      (bydi-coverage--report)
-      (bydi-was-called-with message (list "\nCreated the following temp files:\n%s"
-                                          '("/tmp/test"))))))
-
-(ert-deftest bydi-undercover-setup ()
-  (bydi (undercover--setup
-         (:mock getenv :with ignore))
-
-    (bydi-undercover-setup (list "bydi.el"))
-
-    (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format text)
-                                               (:report-file "./coverage/results.txt")
-                                               (:send-report nil))))))
-
-(ert-deftest bydi-undercover-setup--ci ()
-  (bydi (undercover--setup
-         (:mock getenv :with (lambda (r) (string= "CI" r))))
-
-    (bydi-undercover-setup (list "bydi.el"))
-
-    (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format lcov)
-                                               (:report-file nil)
-                                               (:send-report nil))))))
-
-(ert-deftest bydi-undercover-setup--json ()
-  (bydi (undercover--setup
-         (:mock getenv :with (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
-
-    (bydi-undercover-setup (list "bydi.el"))
-
-    (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format simplecov)
-                                               (:report-file "./coverage/.resultset.json")
-                                               (:send-report nil))))))
-
 (ert-deftest bydi-path-setup ()
   (let ((load-path nil)
         (default-directory "/tmp"))
@@ -330,33 +289,11 @@
 
       (should (equal load-path '("/tmp/mock" "/tmp/test" "/tmp"))))))
 
-(ert-deftest bydi-ert-runner-setup ()
-  (bydi (add-hook)
-
-    (bydi-ert-runner-setup 'always)
-
-    (bydi-was-called add-hook)
-    (bydi-was-called-n-times add-hook 2)
-    (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions bydi-coverage--report) 0)
-    (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions always) 1)))
-
-(defvar coverage-file (ert-resource-file "coverage.txt"))
-
 (ert-deftest bydi--matches-in-string ()
   (let ((str "This 1 string has 3 matches, or is it 2?")
         (pattern "\\(?1:[[:digit:]]\\)"))
 
     (should (equal '("2" "3" "1") (bydi--matches-in-string pattern str)))))
-
-(ert-deftest bydi-calculate-coverage ()
-  (let ((bydi-coverage--text-file coverage-file))
-
-    (should (string-equal "Combined coverage: 37.33%" (bydi-calculate-coverage)))))
-
-(ert-deftest bydi-calculate-coverage--errors-on-missing-file ()
-  (let ((bydi-coverage--text-file "/tmp/non-existence.txt"))
-
-    (should-error (bydi-calculate-coverage) :type 'user-error)))
 
 (ert-deftest bydi-spy--spies ()
   (bydi ((:spy file-name-extension))
