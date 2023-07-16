@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Macro `bydi-was-called-last-with` as a convenience function to get
+  the last result.
+
 ### Changed
 
 - Macro `bydi-match-expansion` now has its own `ert-explainer` to show

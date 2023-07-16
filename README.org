@@ -150,7 +150,12 @@ how it was called.
     (bydi-was-called-n-times file-name-extension 4)
     (bydi-was-called-n-times directory-files 1)
 
-    (bydi-was-called-nth-with file-name-extension "three.org" 2)))
+    ;; This is 0-indexed
+    (bydi-was-called-nth-with file-name-extension "three.org" 2)
+
+    (bydi-was-called-nth-with file-name-extension "four.cpp" 3)
+    ;; or
+    (bydi-was-called-last-with file-name-extension "four.cpp")))
 #+END_SRC
 
 Verifying macro expansion can be done with =bydi-match-expansion=.
@@ -185,11 +190,12 @@ but since we test =bydi= itself, it's not using its setup functions).
 The main recipe is the following:
 
 #+begin_src emacs-lisp
-(require 'bydi nil t)
+(require 'bydi)
+(require 'bydi-report)
 
 (declare-function bydi-path-setup "ext:bydi.el")
-(declare-function bydi-ert-runner-setup "ext:bydi.el")
-(declare-function bydi-undercover-setup "ext:bydi.el")
+(declare-function bydi-ert-runner-setup "ext:bydi-report.el")
+(declare-function bydi-undercover-setup "ext:bydi-report.el")
 
 (bydi-path-setup)
 ;; or

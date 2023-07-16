@@ -106,6 +106,13 @@ REPLACE."
     `(let ((actual (nth ,index (reverse (gethash ',fun bydi-mock-history)))))
        (should (bydi--was-called-with ',fun ,safe-exp actual)))))
 
+(defmacro bydi-was-called-last-with (fun expected)
+  "Check if FUN was called with EXPECTED on the last call."
+  (let ((safe-exp (bydi--safe-exp expected)))
+
+    `(let ((actual (car-safe (last (reverse (gethash ',fun bydi-mock-history))))))
+       (should (bydi--was-called-with ',fun ,safe-exp actual)))))
+
 (defmacro bydi-was-called-n-times (fun expected)
   "Check if mocked FUN was called EXPECTED times."
   `(let ((actual (length (gethash ',fun bydi-mock-history))))
