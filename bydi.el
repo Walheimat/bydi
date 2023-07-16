@@ -163,6 +163,7 @@ REPLACE."
 
     `(progn ,@(mapcar (lambda (it) `(should (,check ,it ,expected))) forms))))
 
+(make-obsolete 'bydi-with-temp-file 'with-temp-file "0.3.0")
 (defmacro bydi-with-temp-file (filename &rest body)
   "Create and discard a file.
 

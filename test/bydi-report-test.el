@@ -16,10 +16,10 @@
       (bydi-report--print-temp-files)
       (bydi-was-not-called message)
 
-      (setq bydi--temp-files '("/tmp/test"))
+      (bydi-report--record-temp-file "test")
       (bydi-report--print-temp-files)
       (bydi-was-called-with message (list "\nCreated the following temp files:\n%s"
-                                          '("/tmp/test"))))))
+                                          '("test"))))))
 
 (ert-deftest bydi-undercover-setup ()
   (bydi (undercover--setup

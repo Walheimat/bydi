@@ -270,6 +270,7 @@
       (should ('equal b 'test))
       (should ('equal c 'test)))))
 
+
 (ert-deftest bydi-with-temp-file ()
   (bydi-match-expansion
    (bydi-with-temp-file "test"

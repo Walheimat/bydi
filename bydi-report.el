@@ -42,17 +42,25 @@
 
 ;;; -- `ert-runner'
 
+(defun bydi-report--record-temp-file (name &rest _)
+  "Record temp file NAME."
+  (push name bydi--temp-files))
+
 (defun bydi-report--print-temp-files (&rest _)
   "Print created temp files."
   (when bydi--temp-files
     (message
      "\nCreated the following temp files:\n%s"
-     bydi--temp-files)))
+     bydi--temp-files))
+
+  (advice-remove 'ert-with-temp-file #'bydi-report--record-temp-file))
 
 (defun bydi-setup--ert-runner (reporter)
   "Set up `ert-runner'.
 
 An optional REPORTER function can be passed."
+  (advice-add 'ert-with-temp-file :before #'bydi-report--record-temp-file)
+
   (add-hook
    'ert-runner-reporter-run-ended-functions
    #'bydi-report--print-temp-files)
