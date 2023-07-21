@@ -212,3 +212,12 @@ The main recipe is the following:
   (message "We are done here"))
 (bydi-ert-runnner-setup #'my-reporter)
 #+end_src
+
+** Limitations
+
+Currently functions defined in C and those derived from =cl-defstruct=
+cannot be mocked.
+
+Also confer variable =bydi-mock--never-mock= for a (incomplete) list of
+functions that shouldn't be mocked because it will likely lead to
+execution errors.
