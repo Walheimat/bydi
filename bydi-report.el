@@ -36,15 +36,41 @@
 
     (apply '+ (mapcar #'string-to-number numbers))))
 
-(defun bydi-report--calculate-average ()
-  "Calculate the average."
+(defun bydi-report--consume-undercover-report ()
+  "Consume the report.
+
+This returns the combined relevant and covered lines as well as
+an average of the coverage."
   (with-temp-buffer
     (insert-file-contents bydi-report--text-file)
 
     (when-let* ((relevant (bydi-report--add-up-type (current-buffer) "Relevant"))
                 (covered (bydi-report--add-up-type (current-buffer) "Covered")))
 
-      (string-to-number (format "%.2f%%" (* 100 (/ (float covered) relevant)))))))
+      (list
+       (string-to-number (format "%.2f%%" (* 100 (/ (float covered) relevant))))
+       relevant
+       covered
+       (- relevant covered)))))
+
+(defun bydi-report--undercover-result ()
+  "Print the undercover report.
+
+This includes the average result on top of the full report."
+  (and-let* (((file-exists-p bydi-report--text-file))
+             (consumed (bydi-report--consume-undercover-report))
+             (report (with-temp-buffer
+                       (insert-file-contents-literally bydi-report--text-file)
+                       (goto-char 0)
+                       (delete-line)
+                       (buffer-string))))
+    (cl-destructuring-bind (average relevant covered missed) consumed
+      (message "%s\nAverage : Percent %s%% [Relevant: %s Covered: %s Missed: %s]\n"
+               report
+               average
+               relevant
+               covered
+               missed))))
 
 ;;; -- `ert-runner'
 
@@ -83,7 +109,9 @@ An optional REPORTER function can be passed."
 (declare-function undercover--setup "ext:undercover.el")
 
 (defun bydi-report--setup-undercover (patterns)
-  "Set up `undercover' for PATTERNS."
+  "Set up `undercover' for PATTERNS.
+
+The text report will be printed to stdout."
   (when (require 'undercover nil t)
     (message "Setting up `undercover' with %s" patterns)
 
@@ -107,7 +135,10 @@ An optional REPORTER function can be passed."
                (list
                 (list :report-format report-format)
                 (list :report-file report-file)
-                (list :send-report nil)))))))
+                (list :send-report nil))))
+
+      (when (eq 'text report-format)
+        (add-hook 'kill-emacs-hook #'bydi-report--undercover-result 'last)))))
 
 ;;;###autoload
 (defun bydi-ert-runner-setup (&optional reporter)
@@ -126,11 +157,12 @@ An optional REPORTER function can be passed."
   "Calculate the coverage using the results file."
   (interactive)
 
-  (if (file-exists-p bydi-report--text-file)
-      (let ((average (bydi-report--calculate-average)))
+ (if (file-exists-p bydi-report--text-file)
+      (let ((average (nth 0 (bydi-report--consume-undercover-report))))
 
         (message "Combined coverage: %s%%" average))
     (user-error "Text report %s doesn't exist" bydi-report--text-file)))
+(make-obsolete 'bydi-calculate-coverage nil "0.3.0")
 
 (provide 'bydi-report)
 

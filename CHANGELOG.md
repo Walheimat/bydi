@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `bydi-clear-mocks` unless it is called with `t` to prevent that.
 - Reporting (`undercover` and `ert-runner`) were factored out into new
   package `bydi-report`.
+- `bydi-calculate-coverage` has been deprecated. Printing the report
+  and the average is now done automatically for text coverage.
 
 ## [v0.2.0]
 
