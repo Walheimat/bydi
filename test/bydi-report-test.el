@@ -22,10 +22,11 @@
       (bydi-was-called-with message (list "\nCreated the following temp files:\n%s"
                                           '("test"))))))
 
+;; This test will actually print out the coverage for `bydi', which is
+;; a nice side effect.
 (ert-deftest bydi-undercover-setup ()
   (bydi (undercover--setup
-         (:mock getenv :with ignore)
-         bydi-report--undercover-result)
+         (:mock getenv :with ignore))
 
     (bydi-undercover-setup (list "bydi.el"))
 
@@ -56,14 +57,15 @@
 (ert-deftest bydi-report--undercover-result ()
   (let ((bydi-report--text-file mock-coverage-file))
 
-    (ert-with-message-capture messages
+    (shut-up
+      (ert-with-message-capture messages
 
-      (bydi ((:mock bydi-report--consume-undercover-report :return '(10 3 2 1)))
-        (bydi-report--undercover-result))
+        (bydi ((:mock bydi-report--consume-undercover-report :return '(10 3 2 1)))
+          (bydi-report--undercover-result))
 
-      (should (string=
-               "COVERAGE\n\nAverage : Percent 10% [Relevant: 3 Covered: 2 Missed: 1]\n\n"
-               messages)))))
+        (should (string=
+                 "COVERAGE\n\nAverage : Percent 10% [Relevant: 3 Covered: 2 Missed: 1]\n\n"
+                 messages))))))
 
 (ert-deftest bydi-ert-runner-setup ()
   (bydi (add-hook)

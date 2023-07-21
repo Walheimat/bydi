@@ -2,6 +2,7 @@
 (source melpa-stable)
 
 (development
+ (depends-on "shut-up")
  (depends-on "ert-runner")
  (depends-on "undercover")
  (depends-on "compat"))
