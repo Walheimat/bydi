@@ -28,11 +28,6 @@
 
 (defvar bydi-spy--advice-name 'bydi-spi)
 (defvar bydi-mock-sometimes nil)
-(defvar bydi-setup--env-coverage-with-json "COVERAGE_WITH_JSON"
-  "If set, SimpleCov (JSON) format is used.")
-
-(defvar bydi-setup--env-ci "CI"
-  "Set if in a CI environment.")
 
 (defvar bydi-setup--env-github-workspace "GITHUB_WORKSPACE"
   "Location of the project in GitHub action.")

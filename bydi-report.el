@@ -14,6 +14,12 @@
 
 (require 'bydi (expand-file-name "bydi.el"))
 
+(defvar bydi-setup--env-coverage-with-json "COVERAGE_WITH_JSON"
+  "If set, SimpleCov (JSON) format is used.")
+
+(defvar bydi-setup--env-ci "CI"
+  "Set if in a CI environment.")
+
 ;;; -- Coverage
 
 (defvar bydi-report--text-file "./coverage/results.txt"
