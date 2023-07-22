@@ -158,6 +158,22 @@ how it was called.
     (bydi-was-called-last-with file-name-extension "four.cpp")))
 #+END_SRC
 
+You can also provide an alternate implementation using =:with= for more
+fine-grained control.
+
+#+BEGIN_SRC emacs-lisp
+;; Also using `my-org-file-counter' defined above.
+
+(ert-deftest count-three ()
+  (let ((files (list (list "." ".." "one.txt" "two.org")
+                     (list "." ".." "three.org" "four.org"))))
+
+    (bydi ((:mock directory-files :with (lambda (&rest _) (pop files))))
+
+      (should (eq 1 (my-org-file-counter "/some/dir")))
+      (should (eq 2 (my-org-file-counter "/some/dir"))))))
+#+END_SRC
+
 Verifying macro expansion can be done with =bydi-match-expansion=.
 
 #+begin_src emacs-lisp
@@ -191,26 +207,25 @@ The main recipe is the following:
 
 #+begin_src emacs-lisp
 (require 'bydi)
+
+(require 'bydi-ci)
+
+(bydi-ci-setup-paths)
+;; or
+(bydi-ci-setup-paths '("relative/one" "relative/two"))
+
 (require 'bydi-report)
 
-(declare-function bydi-path-setup "ext:bydi.el")
-(declare-function bydi-ert-runner-setup "ext:bydi-report.el")
-(declare-function bydi-undercover-setup "ext:bydi-report.el")
-
-(bydi-path-setup)
+(bydi-report-setup-undercover (list "my-package.el"))
 ;; or
-(bydi-path-setup '("relative/one" "relative/two"))
+(bydi-report-setup-undercover  (list "src/*.el" "root.el"))
 
-(bydi-undercover-setup (list "my-package.el"))
-;; or
-(bydi-undercover-setup  (list "src/*.el" "root.el"))
-
-(bydi-ert-runner-setup)
+(bydi-report-setup-ert-runner)
 ;; or
 (defun my-reporter (&rest _)
   "Notify."
   (message "We are done here"))
-(bydi-ert-runnner-setup #'my-reporter)
+(bydi-report-setup-ert-runner #'my-reporter)
 #+end_src
 
 ** Limitations
