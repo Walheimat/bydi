@@ -215,8 +215,19 @@ The main recipe is the following:
 
 ** Limitations
 
-Currently functions defined in C and those derived from =cl-defstruct=
-cannot be mocked.
+Inline functions (those using =defsubst=) can't be mocked. If you're
+using =cl-defstruct= you could pass option =:noinline= to keep slot
+accessors mockable. This will make functions run slower, so you might
+be better off creating a helper setup macro for your structs.
+
+#+begin_src emacs-lisp
+(cl-defstruct (horse (:noinline t))
+  "A horse with a name."
+  name)
+
+(bydi ((:mock horse-name :return "no-name"))
+  (should (string= "no-name" (horse-name 'not-a-horse))))
+#+end_src
 
 Also confer variable =bydi-mock--never-mock= for a (incomplete) list of
 functions that shouldn't be mocked because it will likely lead to
