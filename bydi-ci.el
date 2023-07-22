@@ -33,7 +33,7 @@ This function returns a list of the directories added to the
 
     paths))
 
-(defun bydi-ci-setup-paths (paths)
+(defun bydi-ci-setup-paths (&optional paths)
   "Add PATHS to load path in a CI-aware way."
   (bydi-ci--setup-paths paths))
 
