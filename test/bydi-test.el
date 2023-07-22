@@ -287,14 +287,11 @@
           (delete-file "/tmp/test"))))))
 
 (ert-deftest bydi-path-setup ()
-  (let ((load-path nil)
-        (default-directory "/tmp"))
+  (bydi (bydi-ci--setup-paths)
 
-    (bydi ((:ignore getenv))
+    (bydi-path-setup (list "test" "mock"))
 
-      (bydi-path-setup (list "test" "mock"))
-
-      (should (equal load-path '("/tmp/mock" "/tmp/test" "/tmp"))))))
+    (bydi-was-called bydi-ci--setup-paths)))
 
 (ert-deftest bydi--matches-in-string ()
   (let ((str "This 1 string has 3 matches, or is it 2?")

@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   package `bydi-report`.
 - `bydi-calculate-coverage` has been deprecated. Printing the report
   and the average is now done automatically for text coverage.
+- `bydi-path-setup` was made obsolete by `bydi-ci-setup-paths`.
 
 ## [v0.2.0]
 

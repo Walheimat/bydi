@@ -18,6 +18,8 @@
 (require 'cl-lib)
 (require 'compat nil t)
 
+(require 'bydi-ci nil t)
+
 ;;; -- Variables
 
 (defvar bydi--temp-files nil)
@@ -28,9 +30,6 @@
 
 (defvar bydi-spy--advice-name 'bydi-spi)
 (defvar bydi-mock-sometimes nil)
-
-(defvar bydi-setup--env-github-workspace "GITHUB_WORKSPACE"
-  "Location of the project in GitHub action.")
 
 ;;; -- Macros
 
@@ -314,26 +313,6 @@ Optionally, return RETURN."
         (push (match-string 1) matches)))
     matches))
 
-;;; -- Setup helpers
-
-(defun bydi-setup--paths (paths)
-  "Set up `load-path'.
-
-Optionally, set up additional relative PATHS.
-
-This function returns a list of the directories added to the
-`load-path'."
-  (let* ((source-dir (expand-file-name (or (getenv bydi-setup--env-github-workspace)
-                                           default-directory)))
-         (paths (append (list source-dir) (mapcar (lambda (it) (expand-file-name it source-dir)) paths))))
-
-    (message "Adding %s to `load-path'" paths)
-
-    (dolist (it paths)
-      (add-to-list 'load-path it))
-
-    paths))
-
 ;;; -- API
 
 ;;;###autoload
@@ -362,7 +341,9 @@ Optionally, set up additional relative PATHS.
 
 This function returns a list of the directories added to the
 `load-path'."
-  (bydi-setup--paths paths))
+  (declare-function bydi-ci-setup-paths "bydi.el")
+  (bydi-ci-setup-paths paths))
+(make-obsolete 'bydi-path-setup 'bydi-ci-setup-paths "0.3.0")
 
 (provide 'bydi)
 

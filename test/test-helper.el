@@ -28,7 +28,7 @@
           report-file "./coverage/.resultset.json")))
 
   (undercover--setup
-   (append (list "bydi.el" "bydi-report.el")
+   (append (list "bydi.el" "bydi-report.el" "bydi-ci.el")
            (list
             (list :report-format report-format)
             (list :report-file report-file)

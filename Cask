@@ -11,4 +11,4 @@
 
 (package-file "bydi.el")
 
-(files "bydi.el" "bydi-report.el")
+(files "bydi.el" "bydi-report.el" "bydi-ci.el")
