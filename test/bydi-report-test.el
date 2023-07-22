@@ -28,7 +28,7 @@
   (bydi (undercover--setup
          (:mock getenv :with ignore))
 
-    (bydi-undercover-setup (list "bydi.el"))
+    (bydi-report-setup-undercover (list "bydi.el"))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format text)
                                                (:report-file "./coverage/results.txt")
@@ -67,13 +67,14 @@
                  "COVERAGE\n\nAverage : Percent 10% [Relevant: 3 Covered: 2 Missed: 1]\n\n"
                  messages))))))
 
-(ert-deftest bydi-ert-runner-setup ()
+(ert-deftest bydi-report-setup-ert-runner ()
   (bydi (add-hook)
 
-    (bydi-ert-runner-setup 'always)
+    (bydi-ert-runner-setup 'always) ;; To be removed.
+    (bydi-report-setup-ert-runner 'always)
 
     (bydi-was-called add-hook)
-    (bydi-was-called-n-times add-hook 2)
+    (bydi-was-called-n-times add-hook 4)
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions bydi-report--print-temp-files) 0)
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions always) 1)))
 
