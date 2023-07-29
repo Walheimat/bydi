@@ -296,6 +296,11 @@
             (push "test" bydi--temp-files))
           (delete-file "/tmp/test"))))))
 
+(ert-deftest bydi--safe-exp ()
+  (should (equal (list nil) (bydi--safe-exp nil)))
+  (should (equal (list 'a) (bydi--safe-exp 'a)))
+  (should (equal (list 'a) (bydi--safe-exp (list 'a)))))
+
 (ert-deftest bydi-path-setup ()
   (bydi (bydi-ci--setup-paths)
 

@@ -51,10 +51,12 @@ interested in verifying your composition.
     (should (string= (my-project-name) "Test Project"))
 
     ;; Verify `project-current' was called with nil.
+    (bydi-was-called-with project-current nil)
+    ;; or
     (bydi-was-called-with project-current (list nil))
 
     ;; Verify that `project-name' was called.
-    (bydi-was-called project-name))
+    (bydi-was-called project-name)))
 #+end_src
 
 The example introduces macro =bydi-with-mock=, here called using its
@@ -69,7 +71,7 @@ Using the example above, we could have written instead:
   (bydi ((:always project-current)
          (:mock project-name :return "Test Project"))
     (should (string= (my-project-name) "Test Project"))
-    (bydi-was-called-with project-current (list nil))
+    (bydi-was-called-with project-current nil)
     (bydi-was-called project-name))
 #+end_src
 

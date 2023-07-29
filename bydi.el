@@ -320,7 +320,12 @@ Optionally, return RETURN."
 
 (defun bydi--safe-exp (sexp)
   "Get SEXP as a quoted list."
-  (if (listp sexp) sexp (list sexp)))
+  (cond
+   ((null sexp)
+    (list nil))
+   ((listp sexp)
+    sexp)
+   (t (list sexp))))
 
 (defun bydi--matches-in-string (regexp str)
   "Return all matches of REGEXP in STR."
