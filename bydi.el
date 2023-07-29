@@ -27,6 +27,7 @@
 (defvar bydi--never-mock '(fboundp advice-add advice-remove file-exists-p)
   "Functions that, when mocked, do or may prevent test execution.")
 (defvar bydi-spies nil)
+(defvar bydi--elision '\...)
 
 (defvar bydi-spy--advice-name 'bydi-spi)
 (defvar bydi-mock-sometimes nil)
@@ -121,8 +122,31 @@ REPLACE."
   (equal 'not-called actual))
 
 (defun bydi--was-called-with (_fun expected actual)
-  "Verify that EXPECTED represents ACTUAL arguments."
-  (equal expected actual))
+  "Verify that EXPECTED represents ACTUAL arguments.
+
+If the EXPECTED value start with `bydi--elision', the check only
+extends to verifying that expected argument is in expected
+arguments in the order given."
+  (cond
+   ((memq bydi--elision expected)
+    (let ((args expected)
+          (matches t)
+          (last-match -1))
+
+      (while (and matches args)
+        (let* ((it (car args))
+               (this-match (seq-position actual it)))
+
+          (unless (eq it bydi--elision)
+            (if (and this-match
+                     (> this-match last-match))
+                (setq last-match this-match)
+              (setq matches nil)))
+          (setq args (cdr args))))
+      matches))
+   ((eq (length expected) (length actual))
+    (equal expected actual))
+   (t nil)))
 
 (defun bydi--was-called-n-times (_fun expected actual)
   "Verify that EXPECTED number matches ACTUAL."

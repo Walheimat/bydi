@@ -223,6 +223,17 @@
    '(let ((actual (gethash 'apply bydi-mock-history)))
       (should (bydi--was-called-with 'apply (list "test") (car actual))))))
 
+(ert-deftest bydi-was-called-with--partial-matching ()
+  (let ((actual '(a b c d))
+        (bydi--elision '\...))
+
+    (should (bydi--was-called-with nil '(a b c d) actual))
+    (should (bydi--was-called-with nil '(... b c d) actual))
+    (should (bydi--was-called-with nil '(... b d) actual))
+    (should (bydi--was-called-with nil '(a ... d) actual))
+    (should (bydi--was-called-with nil '(... c) actual))
+    (should-not (bydi--was-called-with nil '(... b a) actual))))
+
 (ert-deftest bydi-was-called-nth-with ()
   (bydi-match-expansion
    (bydi-was-called-nth-with apply 'test 1)
@@ -269,7 +280,6 @@
       (should ('equal a 'test))
       (should ('equal b 'test))
       (should ('equal c 'test)))))
-
 
 (ert-deftest bydi-with-temp-file ()
   (bydi-match-expansion
