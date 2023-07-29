@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `bydi-was-called-with` now supports matching with elided arguments.
 
+### Fixed
+
+- Passing a single argument to `bydi-was-called-{nth-}with` should now
+  work reliably.
+
 ## [v0.3.0]
 
 ### Added

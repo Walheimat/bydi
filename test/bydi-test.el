@@ -221,7 +221,7 @@
   (bydi-match-expansion
    (bydi-was-called-with apply "test")
    '(let ((actual (gethash 'apply bydi-mock-history)))
-      (should (bydi--was-called-with 'apply (list "test") (car actual))))))
+      (should (bydi--was-called-with 'apply "test" (car actual))))))
 
 (ert-deftest bydi-was-called-with--partial-matching ()
   (let ((actual '(a b c d))
@@ -244,7 +244,7 @@
   (bydi-match-expansion
    (bydi-was-called-nth-with apply "test" 1)
    '(let ((actual (nth 1 (reverse (gethash 'apply bydi-mock-history)))))
-      (should (bydi--was-called-with 'apply (list "test") actual)))))
+      (should (bydi--was-called-with 'apply "test" actual)))))
 
 (ert-deftest bydi-was-called-last-with ()
   (bydi-match-expansion

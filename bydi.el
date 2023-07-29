@@ -89,24 +89,18 @@ REPLACE."
   "Check if FUN was called with EXPECTED."
   (declare (indent defun))
 
-  (let ((safe-exp (bydi--safe-exp expected)))
-
-    `(let ((actual (gethash ',fun bydi-mock-history)))
-       (should (bydi--was-called-with ',fun ,safe-exp (car actual))))))
+  `(let ((actual (gethash ',fun bydi-mock-history)))
+     (should (bydi--was-called-with ',fun ,expected (car actual)))))
 
 (defmacro bydi-was-called-nth-with (fun expected index)
   "Check if FUN was called with EXPECTED on the INDEXth call."
-  (let ((safe-exp (bydi--safe-exp expected)))
-
-    `(let ((actual (nth ,index (reverse (gethash ',fun bydi-mock-history)))))
-       (should (bydi--was-called-with ',fun ,safe-exp actual)))))
+  `(let ((actual (nth ,index (reverse (gethash ',fun bydi-mock-history)))))
+     (should (bydi--was-called-with ',fun ,expected actual))))
 
 (defmacro bydi-was-called-last-with (fun expected)
   "Check if FUN was called with EXPECTED on the last call."
-  (let ((safe-exp (bydi--safe-exp expected)))
-
-    `(let ((actual (car-safe (last (reverse (gethash ',fun bydi-mock-history))))))
-       (should (bydi--was-called-with ',fun ,safe-exp actual)))))
+  `(let ((actual (car-safe (last (reverse (gethash ',fun bydi-mock-history))))))
+     (should (bydi--was-called-with ',fun ,expected actual))))
 
 (defmacro bydi-was-called-n-times (fun expected)
   "Check if mocked FUN was called EXPECTED times."
@@ -127,26 +121,28 @@ REPLACE."
 If the EXPECTED value start with `bydi--elision', the check only
 extends to verifying that expected argument is in expected
 arguments in the order given."
-  (cond
-   ((memq bydi--elision expected)
-    (let ((args expected)
-          (matches t)
-          (last-match -1))
+  (let ((expected (bydi--safe-exp expected)))
 
-      (while (and matches args)
-        (let* ((it (car args))
-               (this-match (seq-position actual it)))
+    (cond
+     ((memq bydi--elision expected)
+      (let ((args expected)
+            (matches t)
+            (last-match -1))
 
-          (unless (eq it bydi--elision)
-            (if (and this-match
-                     (> this-match last-match))
-                (setq last-match this-match)
-              (setq matches nil)))
-          (setq args (cdr args))))
-      matches))
-   ((eq (length expected) (length actual))
-    (equal expected actual))
-   (t nil)))
+        (while (and matches args)
+          (let* ((it (car args))
+                 (this-match (seq-position actual it)))
+
+            (unless (eq it bydi--elision)
+              (if (and this-match
+                       (> this-match last-match))
+                  (setq last-match this-match)
+                (setq matches nil)))
+            (setq args (cdr args))))
+        matches))
+     ((eq (length expected) (length actual))
+      (equal expected actual))
+     (t nil))))
 
 (defun bydi--was-called-n-times (_fun expected actual)
   "Verify that EXPECTED number matches ACTUAL."
@@ -324,7 +320,7 @@ Optionally, return RETURN."
 
 (defun bydi--safe-exp (sexp)
   "Get SEXP as a quoted list."
-  (if (listp sexp) sexp `(list ,sexp)))
+  (if (listp sexp) sexp (list sexp)))
 
 (defun bydi--matches-in-string (regexp str)
   "Return all matches of REGEXP in STR."
