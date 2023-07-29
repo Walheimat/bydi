@@ -2,7 +2,7 @@
 
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
 ;; Homepage: https://github.com/Walheimat/bydi
-;; Version: 0.3.0
+;; Version: 0.4.0
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: extensions
 
@@ -117,30 +117,6 @@ REPLACE."
 
     `(progn ,@(mapcar (lambda (it) `(should (,check ,it ,expected))) forms))))
 
-(make-obsolete 'bydi-with-temp-file 'with-temp-file "0.3.0")
-(defmacro bydi-with-temp-file (filename &rest body)
-  "Create and discard a file.
-
-FILENAME is the name of the file, BODY the form to execute while
-the file is alive.
-
-The associated file buffer is also killed."
-  (declare (indent defun))
-
-  (let ((tmp-file (expand-file-name filename "/tmp")))
-
-    `(progn
-       (let ((bydi-tmp-file ,tmp-file))
-
-         (make-empty-file ,tmp-file)
-
-         (unwind-protect
-             (progn ,@body)
-           (when (get-buffer ,filename)
-             (kill-buffer ,filename)
-             (push ,filename bydi--temp-files))
-           (delete-file ,tmp-file))))))
-
 ;;; -- Helpers
 
 (defun bydi-rf (a &rest _r)
@@ -171,11 +147,11 @@ The associated file buffer is also killed."
 If the EXPECTED value start with `bydi--elision', the check only
 extends to verifying that expected argument is in expected
 arguments in the order given."
-  (let ((expected (bydi-verify--safe-exp expected)))
+  (let ((safe-exp (bydi-verify--safe-exp expected)))
 
     (cond
-     ((memq bydi--elision expected)
-      (let ((args expected)
+     ((memq bydi--elision safe-exp)
+      (let ((args safe-exp)
             (matches t)
             (last-match -1))
 
@@ -190,8 +166,10 @@ arguments in the order given."
                 (setq matches nil)))
             (setq args (cdr args))))
         matches))
-     ((eq (length expected) (length actual))
-      (equal expected actual))
+     ((eq (length safe-exp) (length actual))
+      (equal safe-exp actual))
+     ((null expected)
+      (null actual))
      (t nil))))
 
 (defun bydi-verify--was-called-n-times (_fun expected actual)
@@ -348,18 +326,6 @@ Unless NO-CLEAR is t, this also calls `bydi-clea-mocks'."
 
 ;;;###autoload
 (defalias 'bydi 'bydi-with-mock)
-
-;;;###autoload
-(defun bydi-path-setup (&optional paths)
-  "Set up `load-path'.
-
-Optionally, set up additional relative PATHS.
-
-This function returns a list of the directories added to the
-`load-path'."
-  (declare-function bydi-ci-setup-paths "bydi.el")
-  (bydi-ci-setup-paths paths))
-(make-obsolete 'bydi-path-setup 'bydi-ci-setup-paths "0.3.0")
 
 (provide 'bydi)
 

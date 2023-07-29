@@ -241,6 +241,9 @@
     (should (bydi-verify--was-called-with nil '(... c) actual))
     (should-not (bydi-verify--was-called-with nil '(... b a) actual))))
 
+(ert-deftest bydi-verify--was-called-with--nil-matching ()
+  (should (bydi-verify--was-called-with nil nil nil)))
+
 (ert-deftest bydi-was-called-nth-with ()
   (bydi-match-expansion
    (bydi-was-called-nth-with apply 'test 1)
@@ -288,32 +291,10 @@
       (should ('equal b 'test))
       (should ('equal c 'test)))))
 
-(ert-deftest bydi-with-temp-file ()
-  (bydi-match-expansion
-   (bydi-with-temp-file "test"
-     (should t))
-   '(progn
-      (let ((bydi-tmp-file "/tmp/test"))
-
-        (make-empty-file "/tmp/test")
-        (unwind-protect
-            (progn (should t))
-          (when (get-buffer "test")
-            (kill-buffer "test")
-            (push "test" bydi--temp-files))
-          (delete-file "/tmp/test"))))))
-
 (ert-deftest bydi-verify--safe-exp ()
   (should (equal (list nil) (bydi-verify--safe-exp nil)))
   (should (equal (list 'a) (bydi-verify--safe-exp 'a)))
   (should (equal (list 'a) (bydi-verify--safe-exp (list 'a)))))
-
-(ert-deftest bydi-path-setup ()
-  (bydi (bydi-ci--setup-paths)
-
-    (bydi-path-setup (list "test" "mock"))
-
-    (bydi-was-called bydi-ci--setup-paths)))
 
 (ert-deftest bydi-spy--spies ()
   (bydi ((:spy file-name-extension))

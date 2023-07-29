@@ -2,7 +2,7 @@
 
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
 ;; Homepage: https://github.com/Walheimat/bydi
-;; Version: 0.3.0
+;; Version: 0.4.0
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: extensions
 
@@ -152,14 +152,6 @@ The text report will be printed to stdout."
         (add-hook 'kill-emacs-hook #'bydi-report--undercover-result 'last)))))
 
 ;;;###autoload
-(defun bydi-ert-runner-setup (&optional reporter)
-  "Set up `ert-runner'.
-
-An optional REPORTER function can be passed."
-  (bydi-setup--ert-runner reporter))
-(make-obsolete 'bydi-ert-runner-setup 'bydi-report-setup-ert-runner "0.3.0")
-
-;;;###autoload
 (defun bydi-report-setup-ert-runner (&optional reporter)
   "Set up `ert-runner'.
 
@@ -167,27 +159,9 @@ An optional REPORTER function can be passed."
   (bydi-setup--ert-runner reporter))
 
 ;;;###autoload
-(defun bydi-undercover-setup (patterns)
-  "Set up `undercover' for PATTERNS."
-  (bydi-report--setup-undercover patterns))
-(make-obsolete 'bydi-undercover-setup 'bydi-report-setup-undercover "0.3.0")
-
-;;;###autoload
 (defun bydi-report-setup-undercover (patterns)
   "Set up `undercover' for PATTERNS."
   (bydi-report--setup-undercover patterns))
-
-;;;###autoload
-(defun bydi-calculate-coverage ()
-  "Calculate the coverage using the results file."
-  (interactive)
-
- (if (file-exists-p bydi-report--text-file)
-      (let ((average (nth 0 (bydi-report--consume-undercover-report))))
-
-        (message "Combined coverage: %s%%" average))
-    (user-error "Text report %s doesn't exist" bydi-report--text-file)))
-(make-obsolete 'bydi-calculate-coverage nil "0.3.0")
 
 (provide 'bydi-report)
 

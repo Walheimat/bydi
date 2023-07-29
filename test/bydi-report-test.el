@@ -30,7 +30,7 @@
 
 ;; This test will actually print out the coverage for `bydi', which is
 ;; a nice side effect.
-(ert-deftest bydi-undercover-setup ()
+(ert-deftest bydi-report--setup-undercover ()
   (bydi (undercover--setup
          (:mock getenv :with ignore))
 
@@ -40,21 +40,21 @@
                                                (:report-file "./coverage/results.txt")
                                                (:send-report nil))))))
 
-(ert-deftest bydi-undercover-setup--ci ()
+(ert-deftest bydi-report--setup-undercover--ci ()
   (bydi (undercover--setup
          (:mock getenv :with (lambda (r) (string= "CI" r))))
 
-    (bydi-undercover-setup (list "bydi.el"))
+    (bydi-report--setup-undercover (list "bydi.el"))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format lcov)
                                                (:report-file nil)
                                                (:send-report nil))))))
 
-(ert-deftest bydi-undercover-setup--json ()
+(ert-deftest bydi-report--setup-undercover--json ()
   (bydi (undercover--setup
          (:mock getenv :with (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
 
-    (bydi-undercover-setup (list "bydi.el"))
+    (bydi-report--setup-undercover (list "bydi.el"))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format simplecov)
                                                (:report-file "./coverage/.resultset.json")
@@ -76,24 +76,17 @@
 (ert-deftest bydi-report-setup-ert-runner ()
   (bydi (add-hook)
 
-    (bydi-ert-runner-setup 'always) ;; To be removed.
     (bydi-report-setup-ert-runner 'always)
 
     (bydi-was-called add-hook)
-    (bydi-was-called-n-times add-hook 4)
+
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions bydi-report--print-temp-files) 0)
     (bydi-was-called-nth-with add-hook '(ert-runner-reporter-run-ended-functions always) 1)))
 
-
-(ert-deftest bydi-calculate-coverage ()
+(ert-deftest bydi-report--consume-undercover-report ()
   (let ((bydi-report--text-file coverage-file))
 
-    (should (string-equal "Combined coverage: 37.33%" (bydi-calculate-coverage)))))
-
-(ert-deftest bydi-calculate-coverage--errors-on-missing-file ()
-  (let ((bydi-report--text-file "/tmp/non-existence.txt"))
-
-    (should-error (bydi-calculate-coverage) :type 'user-error)))
+    (should (equal '(37.33 225 84 141) (bydi-report--consume-undercover-report)))))
 
 ;;; bydi-report-test.el ends here
 
