@@ -285,7 +285,6 @@ Optionally, return RETURN."
   "Clear all spies."
   (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spies))
 
-
 (defun bydi-mock--sometimes ()
   "Return value of `bydi-mock-sometimes'."
   bydi-mock-sometimes)
@@ -326,17 +325,6 @@ Optionally, return RETURN."
    ((listp sexp)
     sexp)
    (t (list sexp))))
-
-(defun bydi--matches-in-string (regexp str)
-  "Return all matches of REGEXP in STR."
-  (let ((matches nil))
-
-    (with-temp-buffer
-      (insert str)
-      (goto-char (point-min))
-      (while (re-search-forward regexp nil t)
-        (push (match-string 1) matches)))
-    matches))
 
 ;;; -- API
 

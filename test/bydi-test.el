@@ -308,12 +308,6 @@
 
     (bydi-was-called bydi-ci--setup-paths)))
 
-(ert-deftest bydi--matches-in-string ()
-  (let ((str "This 1 string has 3 matches, or is it 2?")
-        (pattern "\\(?1:[[:digit:]]\\)"))
-
-    (should (equal '("2" "3" "1") (bydi--matches-in-string pattern str)))))
-
 (ert-deftest bydi-spy--spies ()
   (bydi ((:spy file-name-extension))
     (should (equal '("txt" "org" "el")

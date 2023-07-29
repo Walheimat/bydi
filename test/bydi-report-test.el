@@ -11,6 +11,12 @@
 (defvar coverage-file (ert-resource-file "coverage.txt"))
 (defvar mock-coverage-file (ert-resource-file "mock-coverage.txt"))
 
+(ert-deftest bydi-report--matches-in-string ()
+  (let ((str "This 1 string has 3 matches, or is it 2?")
+        (pattern "\\(?1:[[:digit:]]\\)"))
+
+    (should (equal '("2" "3" "1") (bydi-report--matches-in-string pattern str)))))
+
 (ert-deftest bydi-report--report ()
   (bydi (message)
     (let ((bydi--temp-files nil))

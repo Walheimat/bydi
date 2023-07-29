@@ -32,9 +32,20 @@
   "Add all numbers of TYPE in buffer BUF."
   (let* ((regex (concat type ": \\(?1:[[:digit:]]+\\)"))
          (content (with-current-buffer buf (buffer-string)))
-         (numbers (bydi--matches-in-string regex content)))
+         (numbers (bydi-report--matches-in-string regex content)))
 
     (apply '+ (mapcar #'string-to-number numbers))))
+
+(defun bydi-report--matches-in-string (regexp str)
+  "Return all matches of REGEXP in STR."
+  (let ((matches nil))
+
+    (with-temp-buffer
+      (insert str)
+      (goto-char (point-min))
+      (while (re-search-forward regexp nil t)
+        (push (match-string 1) matches)))
+    matches))
 
 (defun bydi-report--consume-undercover-report ()
   "Consume the report.
