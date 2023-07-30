@@ -19,7 +19,7 @@
 
 (ert-deftest bydi-report--report ()
   (bydi (message)
-    (let ((bydi--temp-files nil))
+    (let ((bydi-report--temp-files nil))
       (bydi-report--print-temp-files)
       (bydi-was-not-called message)
 

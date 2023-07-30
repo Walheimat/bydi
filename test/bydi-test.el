@@ -22,9 +22,9 @@
    (bydi-with-mock (bydi-rf bydi-ra)
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history (make-hash-table :test 'equal))
+        ((bydi-mock--history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
-         (bydi-spies 'nil)
+         (bydi-spy--spies 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -43,9 +43,9 @@
                     (format . (lambda (a &rest _args) a)))
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history (make-hash-table :test 'equal))
+        ((bydi-mock--history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
-         (bydi-spies 'nil)
+         (bydi-spy--spies 'nil)
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
@@ -68,9 +68,9 @@
                     (:with always :mock buffer-live-p))
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history (make-hash-table :test 'equal))
+        ((bydi-mock--history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
-         (bydi-spies 'nil)
+         (bydi-spy--spies 'nil)
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
@@ -102,9 +102,9 @@
                     (:spy derived-mode-p))
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history (make-hash-table :test 'equal))
+        ((bydi-mock--history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
-         (bydi-spies '(buffer-live-p derived-mode-p))
+         (bydi-spy--spies '(buffer-live-p derived-mode-p))
          ((symbol-function 'abbrev-table-p)
           (lambda (&rest r)
             (interactive)
@@ -121,9 +121,9 @@
                     (:sometimes derived-mode-p))
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history (make-hash-table :test 'equal))
+        ((bydi-mock--history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
-         (bydi-spies 'nil)
+         (bydi-spy--spies 'nil)
          ((symbol-function 'buffer-live-p)
           (lambda (&rest r)
             (interactive)
@@ -148,9 +148,9 @@
    (bydi-with-mock bydi-rf
      (should (always)))
    `(cl-letf*
-        ((bydi-mock-history (make-hash-table :test 'equal))
+        ((bydi-mock--history (make-hash-table :test 'equal))
          (bydi-mock-sometimes t)
-         (bydi-spies 'nil)
+         (bydi-spy--spies 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -161,15 +161,15 @@
 
 (ert-deftest bydi-with-mock--unmockable ()
   (bydi-with-mock (bydi-mock--check)
-    (let ((bydi--never-mock '(new-line)))
+    (let ((bydi-mock--never-mock '(new-line)))
       (bydi-match-expansion
        (bydi-with-mock ((:ignore new-line))
          nil)
        '(cl-letf*
-            ((bydi-mock-history
+            ((bydi-mock--history
               (make-hash-table :test 'equal))
              (bydi-mock-sometimes t)
-             (bydi-spies 'nil)
+             (bydi-spy--spies 'nil)
              ((symbol-function 'new-line)
               (lambda
                 (&rest r)
@@ -183,13 +183,13 @@
     (bydi-was-called bydi-mock--check)))
 
 (ert-deftest bydi-clear-mocks ()
-  (let ((bydi-mock-history nil))
+  (let ((bydi-mock--history nil))
     (bydi-clear-mocks)
-    (should bydi-mock-history)))
+    (should bydi-mock--history)))
 
 (ert-deftest bydi-mock--check ()
   (bydi display-warning
-    (let ((bydi--never-mock '(ignore)))
+    (let ((bydi-mock--never-mock '(ignore)))
 
       (bydi-mock--check 'ignore)
       (bydi-was-called-with display-warning (list 'bydi "Mocking ignore may lead to issues" :warning)))))
@@ -206,7 +206,7 @@
     (bydi-was-called bydi-clear-mocks)
 
     ;; Need to clear manually here.
-    (setq bydi-mock-history (make-hash-table :test 'equal))
+    (setq bydi-mock--history (make-hash-table :test 'equal))
     (bydi-toggle-sometimes t)
 
     (should (buffer-live-p))
@@ -215,24 +215,24 @@
 (ert-deftest bydi-was-called ()
   (bydi-match-expansion
    (bydi-was-called apply)
-   '(let ((actual (gethash 'apply bydi-mock-history 'not-called)))
+   '(let ((actual (gethash 'apply bydi-mock--history 'not-called)))
       (should (bydi-verify--was-called 'apply nil actual)))))
 
 (ert-deftest bydi-was-called-with ()
   (bydi-match-expansion
    (bydi-was-called-with apply '(a b c))
-   '(let ((actual (gethash 'apply bydi-mock-history)))
+   '(let ((actual (gethash 'apply bydi-mock--history)))
       (should (bydi-verify--was-called-with 'apply '(a b c) (car actual))))))
 
 (ert-deftest bydi-was-called-with--single-item ()
   (bydi-match-expansion
    (bydi-was-called-with apply "test")
-   '(let ((actual (gethash 'apply bydi-mock-history)))
+   '(let ((actual (gethash 'apply bydi-mock--history)))
       (should (bydi-verify--was-called-with 'apply "test" (car actual))))))
 
 (ert-deftest bydi-was-called-with--partial-matching ()
   (let ((actual '(a b c d))
-        (bydi--elision '\...))
+        (bydi-expect--elision '\...))
 
     (should (bydi-verify--was-called-with nil '(a b c d) actual))
     (should (bydi-verify--was-called-with nil '(... b c d) actual))
@@ -247,32 +247,32 @@
 (ert-deftest bydi-was-called-nth-with ()
   (bydi-match-expansion
    (bydi-was-called-nth-with apply 'test 1)
-   '(let ((actual (nth 1 (reverse (gethash 'apply bydi-mock-history)))))
+   '(let ((actual (nth 1 (reverse (gethash 'apply bydi-mock--history)))))
       (should (bydi-verify--was-called-with 'apply 'test actual)))))
 
 (ert-deftest bydi-was-called-nth-with--single-item ()
   (bydi-match-expansion
    (bydi-was-called-nth-with apply "test" 1)
-   '(let ((actual (nth 1 (reverse (gethash 'apply bydi-mock-history)))))
+   '(let ((actual (nth 1 (reverse (gethash 'apply bydi-mock--history)))))
       (should (bydi-verify--was-called-with 'apply "test" actual)))))
 
 (ert-deftest bydi-was-called-last-with ()
   (bydi-match-expansion
    (bydi-was-called-last-with apply 'test)
-   '(let ((actual (car-safe (last (reverse (gethash 'apply bydi-mock-history))))))
+   '(let ((actual (car-safe (last (reverse (gethash 'apply bydi-mock--history))))))
       (should (bydi-verify--was-called-with 'apply 'test actual)))))
 
 (ert-deftest bydi-was-not-called ()
   (bydi-match-expansion
    (bydi-was-not-called apply)
-   '(let ((actual (gethash 'apply bydi-mock-history 'not-called)))
+   '(let ((actual (gethash 'apply bydi-mock--history 'not-called)))
       (should (bydi-verify--was-not-called 'apply nil actual)))))
 
 (ert-deftest bydi-was-called-n-times ()
   (bydi-match-expansion
 
    (bydi-was-called-n-times apply 12)
-   '(let ((actual (length (gethash 'apply bydi-mock-history))))
+   '(let ((actual (length (gethash 'apply bydi-mock--history))))
       (should (bydi-verify--was-called-n-times 'apply 12 actual)))))
 
 (ert-deftest bydi-match-expansion ()

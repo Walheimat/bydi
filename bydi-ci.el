@@ -12,7 +12,7 @@
 
 ;;; Code:
 
-(defvar bydi-setup--env-github-workspace "GITHUB_WORKSPACE"
+(defvar bydi-ci--env-github-workspace "GITHUB_WORKSPACE"
   "Location of the project in GitHub action.")
 
 (defun bydi-ci--setup-paths (paths)
@@ -22,7 +22,7 @@ Optionally, set up additional relative PATHS.
 
 This function returns a list of the directories added to the
 `load-path'."
-  (let* ((source-dir (expand-file-name (or (getenv bydi-setup--env-github-workspace)
+  (let* ((source-dir (expand-file-name (or (getenv bydi-ci--env-github-workspace)
                                            default-directory)))
          (paths (append (list source-dir) (mapcar (lambda (it) (expand-file-name it source-dir)) paths))))
 

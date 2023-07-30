@@ -12,15 +12,15 @@
 
 ;;; Code:
 
-(require 'bydi (expand-file-name "bydi.el"))
+(require 'bydi)
 
-(defvar bydi-setup--env-coverage-with-json "COVERAGE_WITH_JSON"
+(defvar bydi-report--temp-files nil)
+
+(defvar bydi-report--env-coverage-with-json "COVERAGE_WITH_JSON"
   "If set, SimpleCov (JSON) format is used.")
 
-(defvar bydi-setup--env-ci "CI"
+(defvar bydi-report--env-ci "CI"
   "Set if in a CI environment.")
-
-;;; -- Coverage
 
 (defvar bydi-report--text-file "./coverage/results.txt"
   "The file used to store text coverage.")
@@ -83,22 +83,20 @@ This includes the average result on top of the full report."
                covered
                missed))))
 
-;;; -- `ert-runner'
-
 (defun bydi-report--record-temp-file (name &rest _)
   "Record temp file NAME."
-  (push name bydi--temp-files))
+  (push name bydi-report--temp-files))
 
 (defun bydi-report--print-temp-files (&rest _)
   "Print created temp files."
-  (when bydi--temp-files
+  (when bydi-report--temp-files
     (message
      "\nCreated the following temp files:\n%s"
-     bydi--temp-files))
+     bydi-report--temp-files))
 
   (advice-remove 'ert-with-temp-file #'bydi-report--record-temp-file))
 
-(defun bydi-setup--ert-runner (reporter)
+(defun bydi-report--setup-ert-runner (reporter)
   "Set up `ert-runner'.
 
 An optional REPORTER function can be passed."
@@ -132,11 +130,11 @@ The text report will be printed to stdout."
       (setq undercover-force-coverage t)
 
       (cond
-       ((getenv bydi-setup--env-ci)
+       ((getenv bydi-report--env-ci)
         (setq report-format 'lcov
               report-file nil))
 
-       ((getenv bydi-setup--env-coverage-with-json)
+       ((getenv bydi-report--env-coverage-with-json)
         (setq undercover--merge-report nil
               report-format 'simplecov
               report-file bydi-report--json-file)))
@@ -151,12 +149,14 @@ The text report will be printed to stdout."
       (when (eq 'text report-format)
         (add-hook 'kill-emacs-hook #'bydi-report--undercover-result 'last)))))
 
+;;; -- API
+
 ;;;###autoload
 (defun bydi-report-setup-ert-runner (&optional reporter)
   "Set up `ert-runner'.
 
 An optional REPORTER function can be passed."
-  (bydi-setup--ert-runner reporter))
+  (bydi-report--setup-ert-runner reporter))
 
 ;;;###autoload
 (defun bydi-report-setup-undercover (patterns)

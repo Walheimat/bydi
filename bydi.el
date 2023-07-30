@@ -18,19 +18,15 @@
 (require 'cl-lib)
 (require 'compat nil t)
 
-(require 'bydi-ci nil t)
-
 ;;; -- Variables
 
-(defvar bydi--temp-files nil)
-(defvar bydi-mock-history nil)
-(defvar bydi--never-mock '(fboundp advice-add advice-remove file-exists-p)
+(defvar bydi-mock--history nil)
+(defvar bydi-mock--never-mock '(fboundp advice-add advice-remove file-exists-p)
   "Functions that, when mocked, do or may prevent test execution.")
-(defvar bydi-spies nil)
-(defvar bydi--elision '\...)
-
-(defvar bydi-spy--advice-name 'bydi-spi)
 (defvar bydi-mock-sometimes nil)
+(defvar bydi-expect--elision '\...)
+(defvar bydi-spy--spies nil)
+(defvar bydi-spy--advice-name 'bydi-spi)
 
 ;;; -- Macros
 
@@ -57,9 +53,9 @@ REPLACE."
 
   (let ((instructions (if (listp to-mock) to-mock (list to-mock))))
 
-    `(cl-letf* ((bydi-mock-history (make-hash-table :test 'equal))
+    `(cl-letf* ((bydi-mock--history (make-hash-table :test 'equal))
                 (bydi-mock-sometimes t)
-                (bydi-spies ',(cl-loop for i in instructions
+                (bydi-spy--spies ',(cl-loop for i in instructions
                                        when (and (bydi-mock--valid-plistp i)
                                                  (plist-member i :spy))
                                        collect (plist-get i :spy)))
@@ -76,34 +72,34 @@ REPLACE."
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
-  `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
+  `(let ((actual (gethash ',fun bydi-mock--history 'not-called)))
      (should (bydi-verify--was-called ',fun nil actual))))
 
 (defmacro bydi-was-not-called (fun)
   "Check if mocked FUN was not called."
-  `(let ((actual (gethash ',fun bydi-mock-history 'not-called)))
+  `(let ((actual (gethash ',fun bydi-mock--history 'not-called)))
      (should (bydi-verify--was-not-called ',fun nil actual))))
 
 (defmacro bydi-was-called-with (fun expected)
   "Check if FUN was called with EXPECTED."
   (declare (indent defun))
 
-  `(let ((actual (gethash ',fun bydi-mock-history)))
+  `(let ((actual (gethash ',fun bydi-mock--history)))
      (should (bydi-verify--was-called-with ',fun ,expected (car actual)))))
 
 (defmacro bydi-was-called-nth-with (fun expected index)
   "Check if FUN was called with EXPECTED on the INDEXth call."
-  `(let ((actual (nth ,index (reverse (gethash ',fun bydi-mock-history)))))
+  `(let ((actual (nth ,index (reverse (gethash ',fun bydi-mock--history)))))
      (should (bydi-verify--was-called-with ',fun ,expected actual))))
 
 (defmacro bydi-was-called-last-with (fun expected)
   "Check if FUN was called with EXPECTED on the last call."
-  `(let ((actual (car-safe (last (reverse (gethash ',fun bydi-mock-history))))))
+  `(let ((actual (car-safe (last (reverse (gethash ',fun bydi-mock--history))))))
      (should (bydi-verify--was-called-with ',fun ,expected actual))))
 
 (defmacro bydi-was-called-n-times (fun expected)
   "Check if mocked FUN was called EXPECTED times."
-  `(let ((actual (length (gethash ',fun bydi-mock-history))))
+  `(let ((actual (length (gethash ',fun bydi-mock--history))))
      (should (bydi-verify--was-called-n-times ',fun ,expected actual))))
 
 (defmacro bydi-match-expansion (form &rest value)
@@ -144,13 +140,13 @@ REPLACE."
 (defun bydi-verify--was-called-with (_fun expected actual)
   "Verify that EXPECTED represents ACTUAL arguments.
 
-If the EXPECTED value start with `bydi--elision', the check only
+If the EXPECTED value start with `bydi-expect--elision', the check only
 extends to verifying that expected argument is in expected
 arguments in the order given."
   (let ((safe-exp (bydi-verify--safe-exp expected)))
 
     (cond
-     ((memq bydi--elision safe-exp)
+     ((memq bydi-expect--elision safe-exp)
       (let ((args safe-exp)
             (matches t)
             (last-match -1))
@@ -159,7 +155,7 @@ arguments in the order given."
           (let* ((it (car args))
                  (this-match (seq-position actual it)))
 
-            (unless (eq it bydi--elision)
+            (unless (eq it bydi-expect--elision)
               (if (and this-match
                        (> this-match last-match))
                   (setq last-match this-match)
@@ -182,7 +178,6 @@ arguments in the order given."
    `(pcase (macroexpand-1 ',form)
       (',value t))))
 
-
 (defun bydi-verify--safe-exp (sexp)
   "Get SEXP as a quoted list."
   (cond
@@ -196,10 +191,10 @@ arguments in the order given."
 
 (defun bydi-mock--remember (fun args)
   "Remember function FUN and return ARGS."
-  (let* ((prev (gethash fun bydi-mock-history))
+  (let* ((prev (gethash fun bydi-mock--history))
          (val (if prev (push args prev) (list args))))
 
-    (puthash fun val bydi-mock-history)
+    (puthash fun val bydi-mock--history)
     args))
 
 (defun bydi-mock--binding (mock)
@@ -257,7 +252,7 @@ Optionally, return RETURN."
 
 (defun bydi-mock--check (fun)
   "Verify binding FUN."
-  (unless (not (memq fun bydi--never-mock))
+  (unless (not (memq fun bydi-mock--never-mock))
     (display-warning
      'bydi
      (format "Mocking %s may lead to issues" fun)
@@ -273,11 +268,11 @@ Optionally, return RETURN."
            (lambda (&rest args)
              (apply 'bydi-mock--remember (list it args)))
            (list (cons 'name bydi-spy--advice-name))))
-        bydi-spies))
+        bydi-spy--spies))
 
 (defun bydi-spy--clear ()
   "Clear all spies."
-  (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spies))
+  (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spy--spies))
 
 ;;; -- Explaining
 
@@ -312,7 +307,7 @@ Optionally, return RETURN."
 ;;;###autoload
 (defun bydi-clear-mocks ()
   "Clear mock history."
-  (setq bydi-mock-history (make-hash-table :test 'equal)))
+  (setq bydi-mock--history (make-hash-table :test 'equal)))
 
 ;;;###autoload
 (defun bydi-toggle-sometimes (&optional no-clear)
