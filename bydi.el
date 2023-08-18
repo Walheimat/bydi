@@ -352,12 +352,10 @@ Optionally, return RETURN."
 
 ;;; -- API
 
-;;;###autoload
 (defun bydi-clear-mocks ()
   "Clear mock history."
   (setq bydi--history (make-hash-table :test 'equal)))
 
-;;;###autoload
 (defun bydi-toggle-sometimes (&optional no-clear)
   "Toggle `bydi-mock--sometimes'.
 
