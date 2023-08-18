@@ -20,7 +20,7 @@
 
 ;;; -- Variables
 
-(defvar bydi-mock--history nil)
+(defvar bydi--history nil)
 (defvar bydi-mock--never-mock '(fboundp advice-add advice-remove file-exists-p)
   "Functions that, when mocked, do or may prevent test execution.")
 (defvar bydi-mock-sometimes nil)
@@ -40,21 +40,20 @@ The arguments passed to the mocked functions will be recorded in
 a hash table. Repeated calls will append results.
 
 Each item in TO-MOCK can either be a function symbol returning
-the result of `bydi-mock--remember', a plist of shape (:mock FUN
-:with REPLACE) returning the result of calling REPLACE, a plist
-of shape (:mock FUN :return VAL) returning VAL, a plist of
+the result of `bydi--remember', a plist of shape (:mock FUN :with
+REPLACE) returning the result of calling REPLACE, a plist of
+shape (:mock FUN :return VAL) returning VAL, a plist of
 shape (:ignore FUN) that will replace FUN with `ignore', a plist
 of shape (:always FUN) that will replace FUN with `always', a
 plist of shape (:sometimes FUN) that will return the value of
 `bydi-mock-sometimes', a plist of shape (:spy FUN) that will
 advise FUN so that its invocations are recorded, or a cons cell
-of shape (FUN . REPLACE) returning the result of calling
-REPLACE."
+of shape (FUN . REPLACE) returning the result of calling REPLACE."
   (declare (indent defun))
 
   (let ((instructions (if (listp to-mock) to-mock (list to-mock))))
 
-    `(cl-letf* ((bydi-mock--history (make-hash-table :test 'equal))
+    `(cl-letf* ((bydi--history (make-hash-table :test 'equal))
                 (bydi-mock-sometimes t)
                 (bydi-spy--spies ',(bydi-mock--collect instructions :spy))
                 (bydi-watch--watchers ',(bydi-mock--collect instructions :watch))
@@ -73,34 +72,34 @@ REPLACE."
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
-  `(let ((actual (gethash ',fun bydi-mock--history 'not-called)))
+  `(let ((actual (gethash ',fun bydi--history 'not-called)))
      (should (bydi-verify--was-called ',fun nil actual))))
 
 (defmacro bydi-was-not-called (fun)
   "Check if mocked FUN was not called."
-  `(let ((actual (gethash ',fun bydi-mock--history 'not-called)))
+  `(let ((actual (gethash ',fun bydi--history 'not-called)))
      (should (bydi-verify--was-not-called ',fun nil actual))))
 
 (defmacro bydi-was-called-with (fun expected)
   "Check if FUN was called with EXPECTED."
   (declare (indent defun))
 
-  `(let ((actual (gethash ',fun bydi-mock--history)))
+  `(let ((actual (gethash ',fun bydi--history)))
      (should (bydi-verify--was-called-with ',fun ,expected (car actual)))))
 
 (defmacro bydi-was-called-nth-with (fun expected index)
   "Check if FUN was called with EXPECTED on the INDEXth call."
-  `(let ((actual (nth ,index (reverse (gethash ',fun bydi-mock--history)))))
+  `(let ((actual (nth ,index (reverse (gethash ',fun bydi--history)))))
      (should (bydi-verify--was-called-with ',fun ,expected actual))))
 
 (defmacro bydi-was-called-last-with (fun expected)
   "Check if FUN was called with EXPECTED on the last call."
-  `(let ((actual (car-safe (last (reverse (gethash ',fun bydi-mock--history))))))
+  `(let ((actual (car-safe (last (reverse (gethash ',fun bydi--history))))))
      (should (bydi-verify--was-called-with ',fun ,expected actual))))
 
 (defmacro bydi-was-called-n-times (fun expected)
   "Check if mocked FUN was called EXPECTED times."
-  `(let ((actual (length (gethash ',fun bydi-mock--history))))
+  `(let ((actual (length (gethash ',fun bydi--history))))
      (should (bydi-verify--was-called-n-times ',fun ,expected actual))))
 
 (defmacro bydi-match-expansion (form &rest value)
@@ -127,6 +126,16 @@ REPLACE."
 (defun bydi-rt (&rest _r)
   "Return symbol `testing'."
   'testing)
+
+;;; -- Recording
+
+(defun bydi--remember (sym args)
+  "Remember SYM and return ARGS."
+  (let* ((prev (gethash sym bydi--history))
+         (val (if prev (push args prev) (list args))))
+
+    (puthash sym val bydi--history)
+    args))
 
 ;;; -- Verification
 
@@ -198,14 +207,6 @@ arguments in the order given."
 
 ;;; -- Mocking
 
-(defun bydi-mock--remember (sym args)
-  "Remember SYM and return ARGS."
-  (let* ((prev (gethash sym bydi-mock--history))
-         (val (if prev (push args prev) (list args))))
-
-    (puthash sym val bydi-mock--history)
-    args))
-
 (defun bydi-mock--binding (mock)
   "Get function and binding for MOCK."
   (cond
@@ -237,12 +238,12 @@ Optionally, return RETURN."
       `((symbol-function ',fun)
         (lambda (&rest r)
           (interactive)
-          (apply 'bydi-mock--remember (list ',fun r))
+          (apply 'bydi--remember (list ',fun r))
           ,return))
     `((symbol-function ',fun)
       (lambda (&rest r)
         (interactive)
-        (apply 'bydi-mock--remember (list ',fun r))))))
+        (apply 'bydi--remember (list ',fun r))))))
 
 (defun bydi-mock--collect (instructions prop)
   "Collect PROP entries from INSTRUCTIONS."
@@ -283,7 +284,7 @@ Optionally, return RETURN."
           (advice-add
            it :after
            (lambda (&rest args)
-             (apply 'bydi-mock--remember (list it args)))
+             (apply 'bydi--remember (list it args)))
            (list (cons 'name bydi-spy--advice-name))))
         bydi-spy--spies))
 
@@ -295,7 +296,7 @@ Optionally, return RETURN."
 
 (defun bydi-watch--watcher (symbol newval _operation _where)
   "Record that SYMBOL was updated with NEWVAL."
-  (bydi-mock--remember symbol (list newval)))
+  (bydi--remember symbol (list newval)))
 
 (defun bydi-watch--create ()
   "Record settings of symbols."
@@ -342,7 +343,7 @@ Optionally, return RETURN."
 ;;;###autoload
 (defun bydi-clear-mocks ()
   "Clear mock history."
-  (setq bydi-mock--history (make-hash-table :test 'equal)))
+  (setq bydi--history (make-hash-table :test 'equal)))
 
 ;;;###autoload
 (defun bydi-toggle-sometimes (&optional no-clear)
