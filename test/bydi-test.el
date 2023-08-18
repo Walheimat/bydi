@@ -23,9 +23,9 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
-         (bydi-mock-sometimes t)
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
+         (bydi-mock--sometimes t)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -34,11 +34,9 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi--remember (list 'bydi-ra r)))))
-      (bydi-spy--create)
-      (bydi-watch--create)
+      (bydi--setup)
       (should (always))
-      (bydi-spy--clear)
-      (bydi-watch--clear))))
+      (bydi--teardown))))
 
 (ert-deftest bydi-with-mock--old-usage ()
   (bydi-match-expansion
@@ -47,9 +45,9 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
-         (bydi-mock-sometimes t)
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
+         (bydi-mock--sometimes t)
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
@@ -60,11 +58,9 @@
             (interactive)
             (apply 'bydi--remember (list 'format r))
             (apply (lambda (a &rest _args) a) r))))
-      (bydi-spy--create)
-      (bydi-watch--create)
+      (bydi--setup)
       (should (always))
-      (bydi-spy--clear)
-      (bydi-watch--clear))))
+      (bydi--teardown))))
 
 (ert-deftest bydi-with-mock--explicit ()
   (bydi-match-expansion
@@ -75,9 +71,9 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
-         (bydi-mock-sometimes t)
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
+         (bydi-mock--sometimes t)
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
@@ -98,11 +94,9 @@
             (interactive)
             (apply 'bydi--remember (list 'buffer-live-p r))
             (apply #'always r))))
-      (bydi-spy--create)
-      (bydi-watch--create)
+      (bydi--setup)
       (should (always))
-      (bydi-spy--clear)
-      (bydi-watch--clear))))
+      (bydi--teardown))))
 
 (ert-deftest bydi-with-mock--spies-and-watchers ()
   (bydi-match-expansion
@@ -113,19 +107,17 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
-         (bydi-mock-sometimes t)
          (bydi-spy--spies '(buffer-live-p derived-mode-p))
          (bydi-watch--watchers '(major-mode))
+         (bydi-mock--sometimes t)
          ((symbol-function 'abbrev-table-p)
           (lambda (&rest r)
             (interactive)
             (apply 'bydi--remember (list 'abbrev-table-p r))
             (apply #'bydi-rt r))))
-      (bydi-spy--create)
-      (bydi-watch--create)
+      (bydi--setup)
       (should (always))
-      (bydi-spy--clear)
-      (bydi-watch--clear))))
+      (bydi--teardown))))
 
 (ert-deftest bydi-with-mock--shorthands ()
   (bydi-match-expansion
@@ -135,9 +127,9 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
-         (bydi-mock-sometimes t)
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
+         (bydi-mock--sometimes t)
          ((symbol-function 'buffer-live-p)
           (lambda (&rest r)
             (interactive)
@@ -153,11 +145,9 @@
             (interactive)
             (apply 'bydi--remember (list 'derived-mode-p r))
             (funcall #'bydi-mock--sometimes))))
-      (bydi-spy--create)
-      (bydi-watch--create)
+      (bydi--setup)
       (should (always))
-      (bydi-spy--clear)
-      (bydi-watch--clear))))
+      (bydi--teardown))))
 
 (ert-deftest bydi-with-mock--single-function ()
   (bydi-match-expansion
@@ -165,18 +155,16 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
-         (bydi-mock-sometimes t)
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
+         (bydi-mock--sometimes t)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
             (apply 'bydi--remember (list 'bydi-rf r)))))
-      (bydi-spy--create)
-      (bydi-watch--create)
+      (bydi--setup)
       (should (always))
-      (bydi-spy--clear)
-      (bydi-watch--clear))))
+      (bydi--teardown))))
 
 (ert-deftest bydi-with-mock--unmockable ()
   (bydi-with-mock (bydi-mock--check)
@@ -187,9 +175,9 @@
        '(cl-letf*
             ((bydi--history
               (make-hash-table :test 'equal))
-             (bydi-mock-sometimes t)
              (bydi-spy--spies 'nil)
              (bydi-watch--watchers 'nil)
+             (bydi-mock--sometimes t)
              ((symbol-function 'new-line)
               (lambda
                 (&rest r)
@@ -197,11 +185,9 @@
                 (apply 'bydi--remember
                        (list 'new-line r))
                 (apply #'ignore r))))
-          (bydi-spy--create)
-          (bydi-watch--create)
+          (bydi--setup)
           nil
-          (bydi-spy--clear)
-          (bydi-watch--clear))))
+          (bydi--teardown))))
     (bydi-was-called bydi-mock--check)))
 
 (ert-deftest bydi-clear-mocks ()
@@ -302,8 +288,8 @@
    (bydi-match-expansion
     (should t))
    '(should
-    (bydi-verify--matches
-     '(should t)))))
+     (bydi-verify--matches
+      '(should t)))))
 
 (ert-deftest bydi-should-every ()
   (bydi-match-expansion

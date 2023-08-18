@@ -23,7 +23,7 @@
 (defvar bydi--history nil)
 (defvar bydi-mock--never-mock '(fboundp advice-add advice-remove file-exists-p)
   "Functions that, when mocked, do or may prevent test execution.")
-(defvar bydi-mock-sometimes nil)
+(defvar bydi-mock--sometimes nil)
 (defvar bydi-expect--elision '\...)
 (defvar bydi-spy--spies nil)
 (defvar bydi-spy--advice-name 'bydi-spi)
@@ -46,7 +46,7 @@ shape (:mock FUN :return VAL) returning VAL, a plist of
 shape (:ignore FUN) that will replace FUN with `ignore', a plist
 of shape (:always FUN) that will replace FUN with `always', a
 plist of shape (:sometimes FUN) that will return the value of
-`bydi-mock-sometimes', a plist of shape (:spy FUN) that will
+`bydi-mock--sometimes', a plist of shape (:spy FUN) that will
 advise FUN so that its invocations are recorded, or a cons cell
 of shape (FUN . REPLACE) returning the result of calling REPLACE."
   (declare (indent defun))
@@ -54,9 +54,12 @@ of shape (FUN . REPLACE) returning the result of calling REPLACE."
   (let ((instructions (if (listp to-mock) to-mock (list to-mock))))
 
     `(cl-letf* ((bydi--history (make-hash-table :test 'equal))
-                (bydi-mock-sometimes t)
+
                 (bydi-spy--spies ',(bydi-mock--collect instructions :spy))
                 (bydi-watch--watchers ',(bydi-mock--collect instructions :watch))
+
+                (bydi-mock--sometimes t)
+
                 ,@(delq nil
                         (mapcar (lambda (it)
                                   (cl-destructuring-bind (bind to) (bydi-mock--binding it)
@@ -64,11 +67,10 @@ of shape (FUN . REPLACE) returning the result of calling REPLACE."
                                       (bydi-mock--check bind)
                                       (bydi-mock--bind bind to))))
                                 instructions)))
-       (bydi-spy--create)
-       (bydi-watch--create)
+
+       (bydi--setup)
        ,@body
-       (bydi-spy--clear)
-       (bydi-watch--clear))))
+       (bydi--teardown))))
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
@@ -127,7 +129,7 @@ of shape (FUN . REPLACE) returning the result of calling REPLACE."
   "Return symbol `testing'."
   'testing)
 
-;;; -- Recording
+;;; -- Handlers
 
 (defun bydi--remember (sym args)
   "Remember SYM and return ARGS."
@@ -136,6 +138,16 @@ of shape (FUN . REPLACE) returning the result of calling REPLACE."
 
     (puthash sym val bydi--history)
     args))
+
+(defun bydi--setup ()
+  "Set up spies and watchers."
+  (bydi-spy--create)
+  (bydi-watch--create))
+
+(defun bydi--teardown ()
+  "Tear down spies and watchers."
+  (bydi-spy--clear)
+  (bydi-watch--clear))
 
 ;;; -- Verification
 
@@ -265,8 +277,8 @@ Optionally, return RETURN."
            (memq :sometimes plist))))
 
 (defun bydi-mock--sometimes ()
-  "Return value of `bydi-mock-sometimes'."
-  bydi-mock-sometimes)
+  "Return value of `bydi-mock--sometimes'."
+  bydi-mock--sometimes)
 
 (defun bydi-mock--check (fun)
   "Verify binding FUN."
@@ -347,10 +359,10 @@ Optionally, return RETURN."
 
 ;;;###autoload
 (defun bydi-toggle-sometimes (&optional no-clear)
-  "Toggle `bydi-mock-sometimes'.
+  "Toggle `bydi-mock--sometimes'.
 
 Unless NO-CLEAR is t, this also calls `bydi-clea-mocks'."
-  (setq bydi-mock-sometimes (not bydi-mock-sometimes))
+  (setq bydi-mock--sometimes (not bydi-mock--sometimes))
 
   (unless no-clear
     (bydi-clear-mocks)))
