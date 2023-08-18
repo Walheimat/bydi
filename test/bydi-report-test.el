@@ -34,7 +34,8 @@
   (bydi (undercover--setup
          (:mock getenv :with ignore))
 
-    (bydi-report-setup-undercover (list "bydi.el"))
+    (shut-up
+      (bydi-report-setup-undercover (list "bydi.el")))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format text)
                                                (:report-file "./coverage/results.txt")
@@ -44,7 +45,8 @@
   (bydi (undercover--setup
          (:mock getenv :with (lambda (r) (string= "CI" r))))
 
-    (bydi-report--setup-undercover (list "bydi.el"))
+    (shut-up
+      (bydi-report--setup-undercover (list "bydi.el")))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format lcov)
                                                (:report-file nil)
@@ -54,7 +56,8 @@
   (bydi (undercover--setup
          (:mock getenv :with (lambda (r) (string= "COVERAGE_WITH_JSON" r))))
 
-    (bydi-report--setup-undercover (list "bydi.el"))
+    (shut-up
+      (bydi-report--setup-undercover (list "bydi.el")))
 
     (bydi-was-called-with undercover--setup '(("bydi.el" (:report-format simplecov)
                                                (:report-file "./coverage/.resultset.json")

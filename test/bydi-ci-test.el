@@ -14,7 +14,8 @@
 
     (bydi ((:ignore getenv))
 
-      (bydi-ci-setup-paths (list "test" "mock"))
+      (shut-up
+        (bydi-ci-setup-paths (list "test" "mock")))
 
       (should (equal load-path '("/tmp/mock" "/tmp/test" "/tmp"))))))
 
