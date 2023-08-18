@@ -160,6 +160,27 @@ how it was called.
     (bydi-was-called-last-with file-name-extension "four.cpp")))
 #+END_SRC
 
+Similarly, you can watch variables.
+
+#+begin_src emacs-lisp
+(defvar my-variable nil)
+
+(defun friendly-function (new-val)
+  "Update with NEW-VAL."
+  (setq my-variable new-val))
+
+(ert-deftest friendly-setting ()
+  (bydi ((:watch my-variable))
+
+    (friendly-function 'test)
+
+    (bydi-was-set-to my-variable 'test)))
+#+end_src
+
+In fact, watchers work exactly like mocks and support all verification
+macros, but for readability you can use the aliases, that all work
+like =bydi-was-{called=>set}-{with=>to}=.
+
 You can also provide an alternate implementation using =:with= for more
 fine-grained control.
 

@@ -27,6 +27,7 @@
 (defvar bydi-expect--elision '\...)
 (defvar bydi-spy--spies nil)
 (defvar bydi-spy--advice-name 'bydi-spi)
+(defvar bydi-watch--watchers nil)
 
 ;;; -- Macros
 
@@ -55,10 +56,8 @@ REPLACE."
 
     `(cl-letf* ((bydi-mock--history (make-hash-table :test 'equal))
                 (bydi-mock-sometimes t)
-                (bydi-spy--spies ',(cl-loop for i in instructions
-                                       when (and (bydi-mock--valid-plistp i)
-                                                 (plist-member i :spy))
-                                       collect (plist-get i :spy)))
+                (bydi-spy--spies ',(bydi-mock--collect instructions :spy))
+                (bydi-watch--watchers ',(bydi-mock--collect instructions :watch))
                 ,@(delq nil
                         (mapcar (lambda (it)
                                   (cl-destructuring-bind (bind to) (bydi-mock--binding it)
@@ -67,8 +66,10 @@ REPLACE."
                                       (bydi-mock--bind bind to))))
                                 instructions)))
        (bydi-spy--create)
+       (bydi-watch--create)
        ,@body
-       (bydi-spy--clear))))
+       (bydi-spy--clear)
+       (bydi-watch--clear))))
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
@@ -187,14 +188,22 @@ arguments in the order given."
     sexp)
    (t (list sexp))))
 
+(defalias 'bydi-was-set 'bydi-was-called)
+(defalias 'bydi-was-not-set 'bydi-was-not-called)
+(defalias 'bydi-was-set-to 'bydi-was-called-with)
+(defalias 'bydi-was-not-set-to 'bydi-was-not-called-with)
+(defalias 'bydi-was-set-nth-to 'bydi-was-called-nth-with)
+(defalias 'bydi-was-set-last-to 'bydi-was-called-last-with)
+(defalias 'bydi-was-set-n-times 'bydi-was-called-n-times)
+
 ;;; -- Mocking
 
-(defun bydi-mock--remember (fun args)
-  "Remember function FUN and return ARGS."
-  (let* ((prev (gethash fun bydi-mock--history))
+(defun bydi-mock--remember (sym args)
+  "Remember SYM and return ARGS."
+  (let* ((prev (gethash sym bydi-mock--history))
          (val (if prev (push args prev) (list args))))
 
-    (puthash fun val bydi-mock--history)
+    (puthash sym val bydi-mock--history)
     args))
 
 (defun bydi-mock--binding (mock)
@@ -206,7 +215,7 @@ arguments in the order given."
       `(,(plist-get mock :mock) ,(plist-get mock :return)))
      ((plist-member mock :with)
       `(,(plist-get mock :mock) (apply #',(plist-get mock :with) r)))
-     ((plist-member mock :spy)
+     ((or (plist-member mock :spy) (plist-member mock :watch))
       '(nil nil))
 
      ;; Short-hands.
@@ -235,6 +244,13 @@ Optionally, return RETURN."
         (interactive)
         (apply 'bydi-mock--remember (list ',fun r))))))
 
+(defun bydi-mock--collect (instructions prop)
+  "Collect PROP entries from INSTRUCTIONS."
+  (cl-loop for i in instructions
+           when (and (bydi-mock--valid-plistp i)
+                     (plist-member i prop))
+           collect (plist-get i prop)))
+
 (defun bydi-mock--valid-plistp (plist)
   "Check if PLIST list a valid one."
   (and (plistp plist)
@@ -242,6 +258,7 @@ Optionally, return RETURN."
                 (or (memq :return plist)
                     (memq :with plist)))
            (memq :spy plist)
+           (memq :watch plist)
            (memq :always plist)
            (memq :ignore plist)
            (memq :sometimes plist))))
@@ -273,6 +290,24 @@ Optionally, return RETURN."
 (defun bydi-spy--clear ()
   "Clear all spies."
   (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spy--spies))
+
+;;; -- Watching
+
+(defun bydi-watch--watcher (symbol newval _operation _where)
+  "Record that SYMBOL was updated with NEWVAL."
+  (bydi-mock--remember symbol (list newval)))
+
+(defun bydi-watch--create ()
+  "Record settings of symbols."
+  (mapc (lambda (it)
+          (add-variable-watcher it #'bydi-watch--watcher))
+        bydi-watch--watchers))
+
+(defun bydi-watch--clear ()
+  "Clear watchers."
+  (mapc
+   (lambda (it) (remove-variable-watcher it #'bydi-watch--watcher))
+   bydi-watch--watchers))
 
 ;;; -- Explaining
 
