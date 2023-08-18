@@ -13,6 +13,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   aliases `bydi-was-set`, `bydi-was-set-to` etc.
 - `bydi-was-called-with` now supports matching with elided arguments.
 
+### Changed
+
+- `bydi-clear-mocks` now uses `clrhash` instead of creating a new hash
+  table.
+
 ### Fixed
 
 - Passing a single argument to `bydi-was-called-{nth-}with` should now

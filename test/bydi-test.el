@@ -191,9 +191,15 @@
     (bydi-was-called bydi-mock--check)))
 
 (ert-deftest bydi-clear-mocks ()
-  (let ((bydi--history nil))
+  (let ((bydi--history (make-hash-table :test 'equal)))
+
+    (bydi--remember 'test 'testing)
+
+    (should (eq 1 (length (hash-table-keys bydi--history))))
+
     (bydi-clear-mocks)
-    (should bydi--history)))
+
+    (should (eq 0 (length (hash-table-keys bydi--history))))))
 
 (ert-deftest bydi-mock--check ()
   (bydi display-warning

@@ -354,12 +354,12 @@ Optionally, return RETURN."
 
 (defun bydi-clear-mocks ()
   "Clear mock history."
-  (setq bydi--history (make-hash-table :test 'equal)))
+  (clrhash bydi--history))
 
 (defun bydi-toggle-sometimes (&optional no-clear)
   "Toggle `bydi-mock--sometimes'.
 
-Unless NO-CLEAR is t, this also calls `bydi-clea-mocks'."
+Unless NO-CLEAR is t, this also calls `bydi-clear-mocks'."
   (setq bydi-mock--sometimes (not bydi-mock--sometimes))
 
   (unless no-clear
