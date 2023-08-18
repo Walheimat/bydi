@@ -8,9 +8,16 @@
 
 ;;; Commentary:
 ;;
-;; `bydi' allows you to mock (or spy on) functions and verify their
-;; call history in various ways. You can provide your own mock
+;; `bydi' allows you to mock functions. You can provide your own mock
 ;; implementation, define their return value or use a short-hand.
+;;
+;; You can also spy on functions to just record invocations without
+;; providing a return value or implementation.
+;;
+;; You can also watch variables.
+;;
+;; Finally, you can verify invocations and assignments in various
+;; ways.
 
 ;;; Code:
 
