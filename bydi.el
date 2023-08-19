@@ -8,8 +8,12 @@
 
 ;;; Commentary:
 ;;
-;; `bydi' allows you to mock functions. You can provide your own mock
-;; implementation, define their return value or use a short-hand.
+;; `bydi' is a library of mocking macros used in `ert' tests.
+;;
+;; With it you can mock (almost) any function and command, allowing
+;; you to provide your own mock implementation or define a return
+;; value. Some common mock implementations, using `ignore' and
+;; `always' for conditionals, have shorthands.
 ;;
 ;; You can also spy on functions to just record invocations without
 ;; providing a return value or implementation.
@@ -17,7 +21,7 @@
 ;; You can also watch variables.
 ;;
 ;; Finally, you can verify invocations and assignments in various
-;; ways.
+;; ways using macros similar to `should'.
 
 ;;; Code:
 
