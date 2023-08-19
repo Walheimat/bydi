@@ -47,7 +47,7 @@ The arguments passed to the mocked functions will be recorded in
 a hash table. Repeated calls will append results.
 
 Each item in TO-MOCK can either be a function symbol returning
-the result of `bydi--remember', a plist of shape (:mock FUN :with
+the result of `bydi--record', a plist of shape (:mock FUN :with
 REPLACE) returning the result of calling REPLACE, a plist of
 shape (:mock FUN :return VAL) returning VAL, a plist of
 shape (:ignore FUN) that will replace FUN with `ignore', a plist
@@ -138,8 +138,8 @@ of shape (FUN . REPLACE) returning the result of calling REPLACE."
 
 ;;; -- Handlers
 
-(defun bydi--remember (sym args)
-  "Remember SYM and return ARGS."
+(defun bydi--record (sym args)
+  "Record SYM and return ARGS."
   (let* ((prev (gethash sym bydi--history))
          (val (if prev (push args prev) (list args))))
 
@@ -257,12 +257,12 @@ Optionally, return RETURN."
       `((symbol-function ',fun)
         (lambda (&rest r)
           (interactive)
-          (apply 'bydi--remember (list ',fun r))
+          (apply 'bydi--record (list ',fun r))
           ,return))
     `((symbol-function ',fun)
       (lambda (&rest r)
         (interactive)
-        (apply 'bydi--remember (list ',fun r))))))
+        (apply 'bydi--record (list ',fun r))))))
 
 (defun bydi-mock--collect (instructions prop)
   "Collect PROP entries from INSTRUCTIONS."
@@ -303,7 +303,7 @@ Optionally, return RETURN."
           (advice-add
            it :after
            (lambda (&rest args)
-             (apply 'bydi--remember (list it args)))
+             (apply 'bydi--record (list it args)))
            (list (cons 'name bydi-spy--advice-name))))
         bydi-spy--spies))
 
@@ -315,7 +315,7 @@ Optionally, return RETURN."
 
 (defun bydi-watch--watcher (symbol newval _operation _where)
   "Record that SYMBOL was updated with NEWVAL."
-  (bydi--remember symbol (list newval)))
+  (bydi--record symbol (list newval)))
 
 (defun bydi-watch--create ()
   "Record settings of symbols."
