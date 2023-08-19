@@ -168,7 +168,7 @@
 
 (ert-deftest bydi-with-mock--unmockable ()
   (bydi-with-mock (bydi-mock--check)
-    (let ((bydi-mock--never-mock '(new-line)))
+    (let ((bydi-mock--risky '(new-line)))
       (bydi-match-expansion
        (bydi-with-mock ((:ignore new-line))
          nil)
@@ -203,7 +203,7 @@
 
 (ert-deftest bydi-mock--check ()
   (bydi display-warning
-    (let ((bydi-mock--never-mock '(ignore)))
+    (let ((bydi-mock--risky '(ignore)))
 
       (bydi-mock--check 'ignore)
       (bydi-was-called-with display-warning (list 'bydi "Mocking ignore may lead to issues" :warning)))))

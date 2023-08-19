@@ -28,7 +28,7 @@
 ;;; -- Variables
 
 (defvar bydi--history nil)
-(defvar bydi-mock--never-mock '(fboundp advice-add advice-remove file-exists-p)
+(defvar bydi-mock--risky '(fboundp advice-add advice-remove file-exists-p)
   "Functions that, when mocked, do or may prevent test execution.")
 (defvar bydi-mock--sometimes nil)
 (defvar bydi-expect--elision '\...)
@@ -289,7 +289,7 @@ Optionally, return RETURN."
 
 (defun bydi-mock--check (fun)
   "Verify binding FUN."
-  (unless (not (memq fun bydi-mock--never-mock))
+  (unless (not (memq fun bydi-mock--risky))
     (display-warning
      'bydi
      (format "Mocking %s may lead to issues" fun)
