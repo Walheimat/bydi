@@ -27,14 +27,49 @@
 
 ;;; -- Variables
 
-(defvar bydi--history nil)
+(defvar bydi--history nil
+  "An alist of the form (SYMBOL . (ARGS-1 ARGS-2 ...)).
+
+For functions, each ARGS is a list of the arguments it was called
+with. For variables, it's the value it was set to.
+
+The verification functions use this list to inspect invocation
+and assignment results.")
+
 (defvar bydi-mock--risky '(fboundp advice-add advice-remove file-exists-p)
-  "Functions that, when mocked, do or may prevent test execution.")
-(defvar bydi-mock--sometimes nil)
-(defvar bydi-expect--elision '\...)
-(defvar bydi-spy--spies nil)
-(defvar bydi-spy--advice-name 'bydi-spi)
-(defvar bydi-watch--watchers nil)
+  "List of risky functions.
+
+These are functions that, when mocked, do or may prevent test
+execution.")
+
+(defvar bydi-mock--sometimes nil
+  "Value for mocks using `:sometimes' shorthand.
+
+All such functions will return this value. It will be set to t at
+the beginning and can be toggled using `bydi-toggle-sometimes'.")
+
+(defvar bydi-expect--elision '\...
+  "Symbol indicating an elision during argument verification.
+
+Allows only verifying some of the arguments passed to a mocked
+function.")
+
+(defvar bydi-spy--spies nil
+  "List of functions spied upon during `bydi-with-mock'.
+
+Each function will be advised to record the arguments it was
+called with.")
+
+(defvar bydi-spy--advice-name 'bydi-spi
+  "Name used for the advising of spied upon functions.
+
+Allows removing anonymous advice.")
+
+(defvar bydi-watch--watchers nil
+  "List of variables watched during `bydi-with-mock'.
+
+Each variable will be watched to record the values assigned to
+it.")
 
 ;;; -- Macros
 
