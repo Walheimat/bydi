@@ -78,9 +78,10 @@ it.")
 ;;; -- Macros
 
 (defmacro bydi-with-mock (to-mock &rest body)
-  "Evaluate BODY mocking list of function(s) TO-MOCK.
+  "Evaluate a form with mocks.
 
-TO-MOCK maybe be a single item or a list of items.
+TO-MOCK is a list of symbols to mock. These can be functions or
+variables. It maybe be a single item or a list of items.
 
 The arguments passed to the mocked functions will be recorded in
 a hash table. Repeated calls will append results.
@@ -93,8 +94,13 @@ shape (:ignore FUN) that will replace FUN with `ignore', a plist
 of shape (:always FUN) that will replace FUN with `always', a
 plist of shape (:sometimes FUN) that will return the value of
 `bydi-mock--sometimes', a plist of shape (:spy FUN) that will
-advise FUN so that its invocations are recorded, or a cons cell
-of shape (FUN . REPLACE) returning the result of calling REPLACE."
+advise FUN so that its invocations are recorded, a plist of
+shape (:watch VAR) that will watch VAR so assignments are
+recorded, or a cons cell of shape (FUN . REPLACE) returning the
+result of calling REPLACE.
+
+BODY is the form evaluated while the mocking is in place. Any
+verfication macro `bydi-was-*' needs to be part of this form."
   (declare (indent defun))
 
   (let ((instructions (if (listp to-mock) to-mock (list to-mock))))
