@@ -65,8 +65,8 @@
 (ert-deftest bydi-with-mock--explicit ()
   (bydi-match-expansion
    (bydi-with-mock ((:return "hello" :mock substring)
-                    (:mock buffer-file-name :return "/tmp/test.el")
-                    (:mock bydi-ra :with ignore)
+                    (:risky-mock buffer-file-name :return "/tmp/test.el")
+                    (:risky-mock bydi-ra :with ignore)
                     (:with always :mock buffer-live-p))
      (should (always)))
    `(cl-letf*
@@ -205,8 +205,12 @@
   (bydi display-warning
     (let ((bydi-mock--risky '(ignore)))
 
-      (bydi-mock--check 'ignore)
-      (bydi-was-called-with display-warning (list 'bydi "Mocking ignore may lead to issues" :warning)))))
+      (bydi-mock--check 'ignore '(:mock ignore :return nil))
+      (bydi-was-called-with display-warning (list 'bydi "Mocking ignore may lead to issues" :warning))
+
+      (bydi-clear-mocks)
+      (bydi-mock--check 'ignore '(:risky-mock ignore :return nil))
+      (bydi-was-not-called display-warning))))
 
 (ert-deftest bydi-toggle-sometimes ()
   (bydi ((:sometimes buffer-live-p)

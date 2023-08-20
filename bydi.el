@@ -116,7 +116,7 @@ verfication macro `bydi-was-*' needs to be part of this form."
                         (mapcar (lambda (it)
                                   (cl-destructuring-bind (bind to) (bydi-mock--binding it)
                                     (when bind
-                                      (bydi-mock--check bind)
+                                      (bydi-mock--check bind it)
                                       (bydi-mock--bind bind to))))
                                 instructions)))
 
@@ -277,9 +277,9 @@ arguments in the order given."
    ((bydi-mock--valid-plistp mock)
     (cond
      ((plist-member mock :return)
-      `(,(plist-get mock :mock) ,(plist-get mock :return)))
+      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) ,(plist-get mock :return)))
      ((plist-member mock :with)
-      `(,(plist-get mock :mock) (apply #',(plist-get mock :with) r)))
+      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) (apply #',(plist-get mock :with) r)))
      ((or (plist-member mock :spy) (plist-member mock :watch))
       '(nil nil))
 
@@ -319,7 +319,7 @@ Optionally, return RETURN."
 (defun bydi-mock--valid-plistp (plist)
   "Check if PLIST list a valid one."
   (and (plistp plist)
-       (or (and (memq :mock plist)
+       (or (and (or (memq :mock plist) (memq :risky-mock plist))
                 (or (memq :return plist)
                     (memq :with plist)))
            (memq :spy plist)
@@ -332,9 +332,10 @@ Optionally, return RETURN."
   "Return value of `bydi-mock--sometimes'."
   bydi-mock--sometimes)
 
-(defun bydi-mock--check (fun)
-  "Verify binding FUN."
-  (unless (not (memq fun bydi-mock--risky))
+(defun bydi-mock--check (fun instruction)
+  "Verify binding FUN using INSTRUCTION."
+  (when (and (memq fun bydi-mock--risky)
+             (not (memq :risky-mock instruction)))
     (display-warning
      'bydi
      (format "Mocking %s may lead to issues" fun)

@@ -285,6 +285,27 @@ be better off creating a helper setup macro for your structs.
   (should (string= "no-name" (horse-name 'not-a-horse))))
 #+end_src
 
-Also confer variable =bydi-mock--never-mock= for a (incomplete) list of
+Also confer variable =bydi-mock--risky= for a (incomplete) list of
 functions that shouldn't be mocked because it will likely lead to
 execution errors.
+
+You can silence warnings emitted when mocking these.
+
+#+begin_src emacs-lisp
+(defun indirect-string= (a b)
+  "Indirect version of `string='.
+
+Compares A and B."
+  (when (fboundp 'string=)
+    (string= a b)))
+
+(let ((bound nil))
+
+  (bydi ((:risky-mock fboundp :return bound))
+
+    (should-not (indirect-string= "test" "test"))
+
+    (setq bound t)
+
+    (should (indirect-string= "test" "test"))))
+#+end_src

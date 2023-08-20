@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Variables can now be watched using `:watch` and inspected using
   aliases `bydi-was-set`, `bydi-was-set-to` etc.
 - `bydi-was-called-with` now supports matching with elided arguments.
+- Warnings about risky mocks can be silenced by using `:risky-mock`
+  instead of `:mock`.
 
 ### Changed
 
