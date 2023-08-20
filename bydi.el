@@ -201,6 +201,15 @@ verfication macro `bydi-was-*' needs to be part of this form."
   (bydi-spy--clear)
   (bydi-watch--clear))
 
+(defun bydi--warn (message &rest args)
+  "Emit a warning.
+
+The MESSAGE will be formatted with ARGS."
+  (display-warning
+   'bydi
+   (apply #'format message args)
+   :warning))
+
 ;;; -- Verification
 
 (defun bydi-verify--was-called (_fun _expected actual)
@@ -277,7 +286,9 @@ arguments in the order given."
    ((bydi-mock--valid-plistp mock)
     (cond
      ((plist-member mock :return)
-      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) ,(plist-get mock :return)))
+      (unless (plist-get mock :return)
+        (bydi--warn "Returning 'nil' may lead to unexpected results"))
+      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) ,(or (plist-get mock :return))))
      ((plist-member mock :with)
       `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) (apply #',(plist-get mock :with) r)))
      ((or (plist-member mock :spy) (plist-member mock :watch))
@@ -336,10 +347,8 @@ Optionally, return RETURN."
   "Verify binding FUN using INSTRUCTION."
   (when (and (memq fun bydi-mock--risky)
              (not (memq :risky-mock instruction)))
-    (display-warning
-     'bydi
-     (format "Mocking %s may lead to issues" fun)
-     :warning)))
+
+    (bydi--warn "Mocking '%s' may lead to issues" fun)))
 
 ;;; -- Spying
 

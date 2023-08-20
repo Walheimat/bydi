@@ -190,6 +190,29 @@
           (bydi--teardown))))
     (bydi-was-called bydi-mock--check)))
 
+(ert-deftest bydi-with-mock--returning-nil ()
+  (bydi-with-mock (bydi--warn)
+    (bydi-match-expansion
+     (bydi-with-mock ((:mock ignore :return nil))
+       nil)
+     '(cl-letf*
+         ((bydi--history
+           (make-hash-table :test 'equal))
+          (bydi-spy--spies 'nil)
+          (bydi-watch--watchers 'nil)
+          (bydi-mock--sometimes t)
+          ((symbol-function 'ignore)
+           (lambda
+             (&rest r)
+             (interactive)
+             (apply 'bydi--record
+                    (list 'ignore r)))))
+       (bydi--setup)
+       nil
+       (bydi--teardown)))
+
+    (bydi-was-called-with bydi--warn "Returning 'nil' may lead to unexpected results")))
+
 (ert-deftest bydi-clear-mocks ()
   (let ((bydi--history (make-hash-table :test 'equal)))
 
@@ -206,7 +229,7 @@
     (let ((bydi-mock--risky '(ignore)))
 
       (bydi-mock--check 'ignore '(:mock ignore :return nil))
-      (bydi-was-called-with display-warning (list 'bydi "Mocking ignore may lead to issues" :warning))
+      (bydi-was-called-with display-warning (list 'bydi "Mocking 'ignore' may lead to issues" :warning))
 
       (bydi-clear-mocks)
       (bydi-mock--check 'ignore '(:risky-mock ignore :return nil))

@@ -63,6 +63,10 @@ The example introduces macro =bydi-with-mock=, here called using its
 alias =bydi=. =bydi= accepts a list of mocking instructions and a body to
 execute while these instructions are active.
 
+Note that combining =return= with =nil= will lead to unexpected
+returns as the macro will expand to return the arguments the mocked
+function was called with.
+
 There are a few short-hands for useful mocks using =ignore= and =always=.
 Using the example above, we could have written instead:
 
