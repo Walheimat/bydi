@@ -391,6 +391,7 @@ Optionally, return RETURN."
   (if (equal actual 'not-called)
       `(no-call ',fun)
     `(call ',fun
+           :reason ,(ert--explain-equal-rec expected actual)
            :expected ,(bydi-explain--make-readable expected)
            :actual ,(bydi-explain--make-readable actual))))
 
@@ -401,7 +402,12 @@ Optionally, return RETURN."
 
 (defun bydi-explain--explain-mismatch (a b)
   "Explain that A didn't match B."
-  `(no-match :wanted ,(macroexpand-1 a) :got ,b))
+  (let ((expanded (macroexpand-1 a)))
+
+    `(no-match
+      :reason ,(ert--explain-equal-rec expanded b)
+      :wanted expanded
+      :got ,b)))
 
 (put 'bydi-verify--matches 'ert-explainer 'bydi-explain--explain-mismatch)
 

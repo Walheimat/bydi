@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bydi-was-called-with` now supports matching with elided arguments.
 - Warnings about risky mocks can be silenced by using `:risky-mock`
   instead of `:mock`.
+- Macros now use `ert--explain-equal-rec` on failure to provide more
+  information.
 
 ### Changed
 
