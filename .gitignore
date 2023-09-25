@@ -1,8 +1,7 @@
-# Build fragments
-.cask/
-dist/
-coverage
 *.elc
-
-# Development
-bydi-tasks.org
+.cask/
+.dir-locals.el
+bydi-autoloads.el
+bydi-pgk.el
+coverage
+dist/
