@@ -237,13 +237,17 @@
 
 (ert-deftest bydi-toggle-sometimes ()
   (bydi ((:sometimes buffer-live-p)
+         (:othertimes hash-table-p)
          (:spy bydi-clear-mocks))
 
     (should (buffer-live-p))
+    (should-not (hash-table-p))
 
     (bydi-toggle-sometimes)
 
     (should-not (buffer-live-p))
+    (should (hash-table-p))
+
     (bydi-was-called bydi-clear-mocks)
 
     ;; Need to clear manually here.

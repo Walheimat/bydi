@@ -300,7 +300,9 @@ arguments in the order given."
      ((plist-member mock :always)
       `(,(plist-get mock :always) (apply #'always r)))
      ((plist-member mock :sometimes)
-      `(,(plist-get mock :sometimes) (funcall #'bydi-mock--sometimes)))))
+      `(,(plist-get mock :sometimes) (funcall #'bydi-mock--sometimes)))
+     ((plist-member mock :othertimes)
+      `(,(plist-get mock :othertimes) (not (funcall #'bydi-mock--sometimes))))))
    ((consp mock)
     `(,(car mock) (apply ,(cdr mock) r)))
    (t `(,mock nil))))
@@ -337,7 +339,8 @@ Optionally, return RETURN."
            (memq :watch plist)
            (memq :always plist)
            (memq :ignore plist)
-           (memq :sometimes plist))))
+           (memq :sometimes plist)
+           (memq :othertimes plist))))
 
 (defun bydi-mock--sometimes ()
   "Return value of `bydi-mock--sometimes'."

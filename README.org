@@ -93,7 +93,10 @@ So what if your function branches? There's another short-hand for that.
     nil))
 
 (ert-deftest mock-sometimes ()
-  (bydi ((:sometimes project-current) ; Make `project-current' only sometimes return t.
+  (bydi ((:sometimes project-current) ; Make `project-current' only
+                                      ; sometimes return t. The
+                                      ; opposite is `:othertimes'.
+
          (:mock project-name :return "Test Project")) ; Make `project-name' return constant value.
 
     (should (string= (my-branching-project-name) "Test Project"))
