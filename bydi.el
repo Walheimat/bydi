@@ -156,6 +156,39 @@ verfication macro `bydi-was-*' needs to be part of this form."
   `(let ((actual (length (gethash ',fun bydi--history))))
      (should (bydi-verify--was-called-n-times ',fun ,expected actual))))
 
+(defmacro bydi-was-set-to (var to)
+  "Check that VAR was set to TO."
+  `(let* ((actual (gethash ',var bydi--history)))
+     (should (bydi-verify--was-set-to ',var ,to (car actual)))))
+
+(defmacro bydi-was-set-to-nth (var to index)
+  "Check that VAR was set to TO during INDEXth setting."
+  `(let ((actual (nth ,index (reverse (gethash ',var bydi--history)))))
+     (should (bydi-verify--was-set-to ',var ,to actual))))
+
+(defmacro bydi-was-set-to-last (var to)
+  "Check that VAR was set to TO during last setting."
+  `(let ((actual (last (reverse (gethash ',var bydi--history)))))
+     (should (bydi-verify--was-set-to ',var ,to (car actual)))))
+
+(defmacro bydi-was-set-n-times (var expected)
+  "Verify that VAR was set EXPECTED times."
+  `(let ((actual (length (gethash ',var bydi--history))))
+
+     (should (bydi-verify--was-set-n-times ',var ,expected actual))))
+
+(defmacro bydi-was-set (var)
+  "Check if VAR was set."
+  `(let* ((actual (gethash ',var bydi--history 'not-set)))
+
+     (should (bydi-verify--was-set ',var 'set actual))))
+
+(defmacro bydi-was-not-set (var)
+  "Check that VAR was not set."
+  `(let* ((actual (gethash ',var bydi--history 'not-set)))
+
+     (should-not (bydi-verify--was-set ',var 'not-set actual))))
+
 (defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."
   `(should (bydi-verify--matches ',form ,@value)))
@@ -255,6 +288,22 @@ arguments in the order given."
   "Verify that EXPECTED number matches ACTUAL."
   (eq expected actual))
 
+(defun bydi-verify--was-set-to (_var exp-to to)
+  "Verify that expected and actual settings match.
+
+Matches EXP-FROM against FROM and EXP-TO against TO."
+  (equal exp-to to))
+
+(defun bydi-verify--was-set (_var _expected actual)
+  "Verify that variable was set.
+
+This is done by checking that ACTUAL is not the symbol `not-set'."
+  (not (equal actual 'not-set)))
+
+(defun bydi-verify--was-set-n-times (_var expected actual)
+  "Verify that EXPECTED matches ACTUAL settings."
+  (eq expected actual))
+
 (defun bydi-verify--matches (form value)
   "Make sure FORM matches VALUE."
   (eval
@@ -269,14 +318,6 @@ arguments in the order given."
    ((listp sexp)
     sexp)
    (t (list sexp))))
-
-(defalias 'bydi-was-set 'bydi-was-called)
-(defalias 'bydi-was-not-set 'bydi-was-not-called)
-(defalias 'bydi-was-set-to 'bydi-was-called-with)
-(defalias 'bydi-was-not-set-to 'bydi-was-not-called-with)
-(defalias 'bydi-was-set-nth-to 'bydi-was-called-nth-with)
-(defalias 'bydi-was-set-last-to 'bydi-was-called-last-with)
-(defalias 'bydi-was-set-n-times 'bydi-was-called-n-times)
 
 ;;; -- Mocking
 
@@ -371,9 +412,12 @@ Optionally, return RETURN."
 
 ;;; -- Watching
 
-(defun bydi-watch--watcher (symbol newval _operation _where)
-  "Record that SYMBOL was updated with NEWVAL."
-  (bydi--record symbol (list newval)))
+(defun bydi-watch--watcher (symbol newval operation _where)
+  "Record that SYMBOL was updated with NEWVAL.
+
+Only records when OPERATION is a let or set binding."
+  (when (memq operation '(let set))
+    (bydi--record symbol newval)))
 
 (defun bydi-watch--create ()
   "Record settings of symbols."
@@ -398,10 +442,31 @@ Optionally, return RETURN."
            :expected ,(bydi-explain--make-readable expected)
            :actual ,(bydi-explain--make-readable actual))))
 
+(defun bydi-explain--explain-actual-setting (var exp-to to)
+  "Explain that VAR was not set as expected.
+
+It was set from FROM not EXP-FROM or to TO not EXP-TO."
+  `(set ',var :reason ,(ert--explain-equal-rec exp-to to)))
+
+(defun bydi-explain--explain-setting (var expected actual)
+  "Explain that VAR was (or was not) set.
+
+This depends on EXPECTED. If it was set unexpectedly shows
+ACTUAL."
+  `(set ',var
+        :reason ,(if (equal expected 'set)
+                     '(was-not-set)
+                   `(was-set ,actual))))
+
 (put 'bydi-verify--was-called 'ert-explainer 'bydi-explain--explain-actual)
 (put 'bydi-verify--was-not-called 'ert-explainer 'bydi-explain--explain-actual)
 (put 'bydi-verify--was-called-with 'ert-explainer 'bydi-explain--explain-actual)
 (put 'bydi-verify--was-called-n-times 'ert-explainer 'bydi-explain--explain-actual)
+
+(put 'bydi-verify--was-set 'ert-explainer 'bydi-explain--explain-setting)
+(put 'bydi-verify--was-not-set 'ert-explainer 'bydi-explain--explain-setting)
+(put 'bydi-verify--was-set-to 'ert-explainer 'bydi-explain--explain-actual-setting)
+(put 'bydi-verify--was-set-n-times 'ert-explainer 'bydi-explain--explain-actual-setting)
 
 (defun bydi-explain--explain-mismatch (a b)
   "Explain that A didn't match B."

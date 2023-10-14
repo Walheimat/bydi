@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Shorthand `:othertimes` that will return `nil` when `:sometimes`
   would return `t`.
+- `bydi-was-set-to{-nth}` now also works for `let` bindings. These two
+  as well as `bydi-was{-not}-set` have explainers.
 
 ## [v0.5.0]
 

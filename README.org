@@ -176,20 +176,34 @@ Similarly, you can watch variables.
   "Update with NEW-VAL."
   (setq my-variable new-val))
 
+(defun unfriendly-function ()
+  "Does nothing but `let'-bind."
+  (let ((my-variable 'evil-eye))
+
+    (ignore)))
+
 (ert-deftest friendly-setting ()
   (bydi ((:watch my-variable))
 
     (friendly-function 'test)
 
-    (bydi-was-set-to my-variable 'test)))
+    (bydi-was-set-to my-variable 'test)
+
+    (unfriendly-function)
+
+    (bydi-was-set-to my-variable 'evil-eye)
+
+    ;; OR
+    (bydi-was-set-to-nth my-variable 'test 0)
+    (bydi-was-set-to-last my-variable 'evil-eye)))
 #+end_src
 
-In fact, watchers work exactly like mocks and support all verification
-macros, but for readability you can use the aliases, that all work
-like =bydi-was-{called=>set}-{with=>to}=.
+As you can see, this works both for =setq= and =let= bindings. In
+fact, watchers work mostly like mocks and offer the same verification
+macros just using ={called=>set}= and ={with=>to}=.
 
-You can also provide an alternate implementation using =:with= for more
-fine-grained control.
+Back to mocking functions. You can also provide an alternate
+implementation using =:with= for more fine-grained control.
 
 #+BEGIN_SRC emacs-lisp
 ;; Also using `my-org-file-counter' defined above.

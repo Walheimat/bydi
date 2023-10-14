@@ -349,12 +349,39 @@
     (bydi-was-called-n-times file-name-extension 3)
     (bydi-was-called-nth-with file-name-extension "two.org" 1)))
 
-(ert-deftest bydi-watch--watchers ()
-  (bydi ((:watch major-mode))
-    (with-temp-buffer
-      (setq major-mode 'text-mode))
+(defvar watched nil)
 
-    (bydi-was-set-to major-mode 'text-mode)))
+(ert-deftest bydi-watch--watchers ()
+  (bydi ((:watch watched))
+
+    (setq watched 'a)
+    (setq watched 'b)
+    (setq watched 'c)
+
+    (bydi-was-set-to watched 'c)
+    (bydi-was-set-to-nth watched 'a 0)
+    (bydi-was-set-to-nth watched 'b 1)
+    (bydi-was-set-to-last watched 'c)
+    (bydi-was-set-n-times watched 3)
+
+    (setq watched nil)))
+
+(ert-deftest bydi-watch--let-bindings ()
+  (bydi ((:watch watched))
+
+    (let ((watched 'let))
+      (bydi-was-set-to watched 'let))))
+
+(ert-deftest bydi-was-set ()
+  (bydi ((:watch watched))
+
+    (bydi-was-not-set watched)
+
+    (setq watched 'set)
+
+    (bydi-was-set watched)
+
+    (setq watched nil)))
 
 ;;; bydi-test.el ends here
 
