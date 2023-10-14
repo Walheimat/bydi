@@ -111,18 +111,13 @@ verfication macro `bydi-was-*' needs to be part of this form."
                 (bydi-watch--watchers ',(bydi-mock--collect instructions :watch))
 
                 (bydi-mock--sometimes t)
-
-                ,@(delq nil
-                        (mapcar (lambda (it)
-                                  (cl-destructuring-bind (bind to) (bydi-mock--binding it)
-                                    (when bind
-                                      (bydi-mock--check bind it)
-                                      (bydi-mock--bind bind to))))
-                                instructions)))
+                ,@(bydi-mock--mocks instructions))
 
        (bydi--setup)
        ,@body
        (bydi--teardown))))
+
+;;; -- Calling macros
 
 (defmacro bydi-was-called (fun)
   "Check if mocked FUN was called."
@@ -156,6 +151,8 @@ verfication macro `bydi-was-*' needs to be part of this form."
   `(let ((actual (length (gethash ',fun bydi--history))))
      (should (bydi-verify--was-called-n-times ',fun ,expected actual))))
 
+;;; -- Setting macros
+
 (defmacro bydi-was-set-to (var to)
   "Check that VAR was set to TO."
   `(let* ((actual (gethash ',var bydi--history)))
@@ -188,6 +185,8 @@ verfication macro `bydi-was-*' needs to be part of this form."
   `(let* ((actual (gethash ',var bydi--history 'not-set)))
 
      (should-not (bydi-verify--was-set ',var 'not-set actual))))
+
+;;; -- Other macros
 
 (defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."
@@ -320,6 +319,15 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
    (t (list sexp))))
 
 ;;; -- Mocking
+
+(defun bydi-mock--mocks (instructions)
+  "Get mocks for INSTRUCTIONS."
+  (delq nil (mapcar (lambda (it)
+                      (cl-destructuring-bind (bind to) (bydi-mock--binding it)
+                        (when bind
+                          (bydi-mock--check bind it)
+                          (bydi-mock--bind bind to))))
+                    instructions)))
 
 (defun bydi-mock--binding (mock)
   "Get function and binding for MOCK."
