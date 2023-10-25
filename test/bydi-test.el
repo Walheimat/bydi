@@ -224,6 +224,16 @@
 
     (should (eq 0 (length (hash-table-keys bydi--history))))))
 
+(ert-deftest bydi-clear-mocks-for ()
+  (let ((bydi--history (make-hash-table :test 'equal)))
+
+    (bydi--record 'test 'testing)
+    (bydi--record 'check 'checking)
+
+    (bydi-clear-mocks-for 'test)
+
+    (should (eq 1 (length (hash-table-keys bydi--history))))))
+
 (ert-deftest bydi-mock--check ()
   (bydi display-warning
     (let ((bydi-mock--risky '(ignore)))
@@ -261,13 +271,25 @@
   (bydi-match-expansion
    (bydi-was-called apply)
    '(let ((actual (gethash 'apply bydi--history 'not-called)))
-      (should (bydi-verify--was-called 'apply nil actual)))))
+      (should (bydi-verify--was-called 'apply nil actual))))
+
+  (bydi-match-expansion
+   (bydi-was-called apply t)
+   '(let ((actual (gethash 'apply bydi--history 'not-called)))
+      (should (bydi-verify--was-called 'apply nil actual))
+      (bydi-clear-mocks-for 'apply))))
 
 (ert-deftest bydi-was-called-with ()
   (bydi-match-expansion
    (bydi-was-called-with apply '(a b c))
    '(let ((actual (gethash 'apply bydi--history)))
-      (should (bydi-verify--was-called-with 'apply '(a b c) (car actual))))))
+      (should (bydi-verify--was-called-with 'apply '(a b c) (car actual)))))
+
+  (bydi-match-expansion
+   (bydi-was-called-with apply '(a b c) t)
+   '(let ((actual (gethash 'apply bydi--history)))
+      (should (bydi-verify--was-called-with 'apply '(a b c) (car actual)))
+      (bydi-clear-mocks-for 'apply))))
 
 (ert-deftest bydi-was-called-with--single-item ()
   (bydi-match-expansion
@@ -285,6 +307,12 @@
     (should (bydi-verify--was-called-with nil '(a ... d) actual))
     (should (bydi-verify--was-called-with nil '(... c) actual))
     (should-not (bydi-verify--was-called-with nil '(... b a) actual))))
+
+(ert-deftest bydi-was--clearing-history ()
+  (bydi (forward-line)
+    (forward-line)
+    (bydi-was-called forward-line t)
+    (bydi-was-not-called forward-line)))
 
 (ert-deftest bydi-verify--was-called-with--nil-matching ()
   (should (bydi-verify--was-called-with nil nil nil)))

@@ -119,22 +119,34 @@ verfication macro `bydi-was-*' needs to be part of this form."
 
 ;;; -- Calling macros
 
-(defmacro bydi-was-called (fun)
-  "Check if mocked FUN was called."
+(defmacro bydi-was-called (fun &optional clear)
+  "Check if mocked FUN was called.
+
+If CLEAR is t, clear the history of calls to that function."
   `(let ((actual (gethash ',fun bydi--history 'not-called)))
-     (should (bydi-verify--was-called ',fun nil actual))))
+
+     ,@(delq
+        nil
+        `((should (bydi-verify--was-called ',fun nil actual))
+
+          ,(when clear `(bydi-clear-mocks-for ',fun))))))
 
 (defmacro bydi-was-not-called (fun)
   "Check if mocked FUN was not called."
   `(let ((actual (gethash ',fun bydi--history 'not-called)))
      (should (bydi-verify--was-not-called ',fun nil actual))))
 
-(defmacro bydi-was-called-with (fun expected)
-  "Check if FUN was called with EXPECTED."
+(defmacro bydi-was-called-with (fun expected &optional clear)
+  "Check if FUN was called with EXPECTED.
+
+If CLEAR is t, clear the history afterwards."
   (declare (indent defun))
 
   `(let ((actual (gethash ',fun bydi--history)))
-     (should (bydi-verify--was-called-with ',fun ,expected (car actual)))))
+     ,@(delq
+        nil
+        `((should (bydi-verify--was-called-with ',fun ,expected (car actual)))
+          ,(when clear `(bydi-clear-mocks-for ',fun))))))
 
 (defmacro bydi-was-called-nth-with (fun expected index)
   "Check if FUN was called with EXPECTED on the INDEXth call."
@@ -497,8 +509,12 @@ ACTUAL."
 ;;; -- API
 
 (defun bydi-clear-mocks ()
-  "Clear mock history."
+  "Clear mocks."
   (clrhash bydi--history))
+
+(defun bydi-clear-mocks-for (function)
+  "Clear mocks for FUNCTION."
+  (remhash function bydi--history))
 
 (defun bydi-toggle-sometimes (&optional no-clear)
   "Toggle `bydi-mock--sometimes'.
