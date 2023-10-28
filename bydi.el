@@ -165,10 +165,15 @@ If CLEAR is t, clear the history afterwards."
 
 ;;; -- Setting macros
 
-(defmacro bydi-was-set-to (var to)
-  "Check that VAR was set to TO."
+(defmacro bydi-was-set-to (var to &optional clear)
+  "Check that VAR was set to TO.
+
+If CLEAR is t, clear the history of assignments to that variable."
   `(let* ((actual (gethash ',var bydi--history)))
-     (should (bydi-verify--was-set-to ',var ,to (car actual)))))
+     ,@(delq
+        nil
+        `((should (bydi-verify--was-set-to ',var ,to (car actual)))
+          ,(when clear `(bydi-clear-mocks-for ',var))))))
 
 (defmacro bydi-was-set-to-nth (var to index)
   "Check that VAR was set to TO during INDEXth setting."
@@ -186,11 +191,15 @@ If CLEAR is t, clear the history afterwards."
 
      (should (bydi-verify--was-set-n-times ',var ,expected actual))))
 
-(defmacro bydi-was-set (var)
-  "Check if VAR was set."
-  `(let* ((actual (gethash ',var bydi--history 'not-set)))
+(defmacro bydi-was-set (var &optional clear)
+  "Check if VAR was set.
 
-     (should (bydi-verify--was-set ',var 'set actual))))
+If CLEAR is t, clear the history of assignments to that variable."
+  `(let* ((actual (gethash ',var bydi--history 'not-set)))
+     ,@(delq
+        nil
+        `((should (bydi-verify--was-set ',var 'set actual))
+          ,(when clear `(bydi-clear-mocks-for ',var))))))
 
 (defmacro bydi-was-not-set (var)
   "Check that VAR was not set."

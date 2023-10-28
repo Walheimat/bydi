@@ -411,6 +411,21 @@
 
     (setq watched nil)))
 
+(ert-deftest bydi-was--clearing ()
+  (bydi ((:watch watched))
+
+    (setq watched 'set)
+
+    (bydi-was-set-to watched 'set t)
+
+    (bydi-was-not-set watched)
+
+    (setq watched 'set)
+
+    (bydi-was-set watched t)
+
+    (bydi-was-not-set watched)))
+
 ;;; bydi-test.el ends here
 
 ;; Local Variables:

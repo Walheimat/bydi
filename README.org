@@ -236,27 +236,33 @@ a list containing the =bydi-elision= variable (='...= by default).
     (bydi-was-called-with many-args '(1 ... 3))))
 #+end_src
 
-Macros =bydi-was-called{-with}= accept an optional argument to clear
-the the history for that function (might allow for some easier
-chaining in some scenarios).
+Macros =bydi-was-{called,set}{-with,-to}= accept an optional argument
+to clear the the history for that function or variable (might allow
+for some easier chaining in some scenarios).
 
 #+begin_src emacs-lisp
+(defvar useful-var nil)
+
 (defun useful (person)
   "Message about a useful PERSON."
   (when (string= person "Claire")
+    (setq useful-var 'claire)
     (message "Claire is useful")))
 
 (ert-deftest useful ()
-  (bydi (message)
+  (bydi (message
+         (:watch useful-var))
     (useful "Claire")
 
     ;; Check but then clear history for `message'.
     (bydi-was-called-with message "Claire is useful" t)
+    (bydi-was-set-to useful-var 'claire t)
 
     (useful "Jack")
 
     ;; Can verify it wasn't called this time now.
-    (bydi-was-not-called message)))
+    (bydi-was-not-called message)
+    (bydi-was-not-set useful-var)))
 #+end_src
 
 Verifying macro expansion can be done with =bydi-match-expansion=.

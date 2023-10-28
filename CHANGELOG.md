@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Macros `bydi-was-called{-with}` now accept an optional
   {second,third} argument to clear the mocks for that very function.
+- Macros `bydi-was-set{-to}` now accept optional {second,third}
+  argument to clear the assignments to that very variable.
 
 ## [v0.5.1]
 
