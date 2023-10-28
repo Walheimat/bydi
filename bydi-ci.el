@@ -2,7 +2,7 @@
 
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
 ;; Homepage: https://github.com/Walheimat/bydi
-;; Version: 0.5.1
+;; Version: 0.5.2
 ;; Package-Requires: ((emacs "28.1"))
 ;; Keywords: extensions
 
