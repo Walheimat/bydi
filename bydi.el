@@ -8,15 +8,15 @@
 
 ;;; Commentary:
 ;;
-;; `bydi' is a library of mocking macros used in `ert' tests.
+;; `bydi' is a framework to stump, mock and spy on functions during
+;; the execution of `ert' tests.
 ;;
-;; With it you can mock (almost) any function and command, allowing
-;; you to provide your own mock implementation or define a return
-;; value. Some common mock implementations, using `ignore' and
-;; `always' for conditionals, have shorthands.
+;; You can selectively mock (almost) any function and command by
+;; providing your own mock implementation or simply defining what
+;; should be returned.
 ;;
 ;; You can also spy on functions to just record invocations without
-;; providing a return value or implementation.
+;; providing a return value or replacement implementation.
 ;;
 ;; You can also watch variables.
 ;;
@@ -35,7 +35,7 @@
   "An alist of the form (SYMBOL . (ARGS-1 ARGS-2 ...)).
 
 For functions, each ARGS is a list of the arguments it was called
-with. For variables, it's the value it was set to.
+with. For variables, it's the values it was set to.
 
 The verification functions use this list to inspect invocation
 and assignment results.")
@@ -47,7 +47,7 @@ These are functions that, when mocked, do or may prevent test
 execution.")
 
 (defvar bydi-mock--sometimes nil
-  "Value for mocks using `:sometimes' shorthand.
+  "Value for mocks using `:sometimes' and `:othertimes' shorthands.
 
 All such functions will return this value. It will be set to t at
 the beginning and can be toggled using `bydi-toggle-sometimes'.")
@@ -55,8 +55,8 @@ the beginning and can be toggled using `bydi-toggle-sometimes'.")
 (defvar bydi-expect--elision '\...
   "Symbol indicating an elision during argument verification.
 
-Allows only verifying some of the arguments passed to a mocked
-function.")
+Allows verifying only those arguments passed to a mocked function
+that are of interest.")
 
 (defvar bydi-spy--spies nil
   "List of functions spied upon during `bydi-with-mock'.
@@ -83,8 +83,9 @@ it.")
 TO-MOCK is a list of symbols to mock. These can be functions or
 variables. It maybe be a single item or a list of items.
 
-The arguments passed to the mocked functions will be recorded in
-a hash table. Repeated calls will append results.
+The arguments passed to the mocked functions or assigned to the
+watched variables are recorded in a hash table. Repeated calls or
+assignments will append results.
 
 Each item in TO-MOCK can either be a function symbol returning
 the result of `bydi--record', a plist of shape (:mock FUN :with
@@ -93,14 +94,17 @@ shape (:mock FUN :return VAL) returning VAL, a plist of
 shape (:ignore FUN) that will replace FUN with `ignore', a plist
 of shape (:always FUN) that will replace FUN with `always', a
 plist of shape (:sometimes FUN) that will return the value of
+variable `bydi-mock--sometimes', a plist of shape (:othertimes
+FUN) that will return the inverse of variable
 `bydi-mock--sometimes', a plist of shape (:spy FUN) that will
-advise FUN so that its invocations are recorded, a plist of
-shape (:watch VAR) that will watch VAR so assignments are
-recorded, or a cons cell of shape (FUN . REPLACE) returning the
-result of calling REPLACE.
+advise FUN so that its invocations are recorded with its routine
+untouched, a plist of shape (:watch VAR) that will watch VAR so
+assignments are recorded, or a cons cell of shape (FUN . REPLACE)
+returning the result of calling REPLACE.
 
-BODY is the form evaluated while the mocking is in place. Any
-verfication macro `bydi-was-*' needs to be part of this form."
+BODY is the form evaluated while the mocking, spying and watching
+is in place. Any verification macro `bydi-was-*' needs to be part
+of this form."
   (declare (indent defun))
 
   (let ((instructions (if (listp to-mock) to-mock (list to-mock))))
@@ -122,7 +126,7 @@ verfication macro `bydi-was-*' needs to be part of this form."
 (defmacro bydi-was-called (fun &optional clear)
   "Check if mocked FUN was called.
 
-If CLEAR is t, clear the history of calls to that function."
+If CLEAR is t, clear the history of calls of that function."
   `(let ((actual (gethash ',fun bydi--history 'not-called)))
 
      ,@(delq
@@ -139,7 +143,7 @@ If CLEAR is t, clear the history of calls to that function."
 (defmacro bydi-was-called-with (fun expected &optional clear)
   "Check if FUN was called with EXPECTED.
 
-If CLEAR is t, clear the history afterwards."
+If CLEAR is t, clear the history of calls of that function."
   (declare (indent defun))
 
   `(let ((actual (gethash ',fun bydi--history)))
@@ -413,7 +417,7 @@ Optionally, return RETURN."
            (memq :othertimes plist))))
 
 (defun bydi-mock--sometimes ()
-  "Return value of `bydi-mock--sometimes'."
+  "Return value of variable `bydi-mock--sometimes'."
   bydi-mock--sometimes)
 
 (defun bydi-mock--check (fun instruction)
@@ -526,7 +530,7 @@ ACTUAL."
   (remhash function bydi--history))
 
 (defun bydi-toggle-sometimes (&optional no-clear)
-  "Toggle `bydi-mock--sometimes'.
+  "Toggle variable `bydi-mock--sometimes'.
 
 Unless NO-CLEAR is t, this also calls `bydi-clear-mocks'."
   (setq bydi-mock--sometimes (not bydi-mock--sometimes))
