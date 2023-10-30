@@ -507,7 +507,7 @@ ACTUAL."
 
     `(no-match
       :reason ,(ert--explain-equal-rec expanded b)
-      :wanted expanded
+      :wanted ,expanded
       :got ,b)))
 
 (put 'bydi-verify--matches 'ert-explainer 'bydi-explain--explain-mismatch)
