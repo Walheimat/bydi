@@ -91,6 +91,25 @@
 
     (should (equal '(37.33 225 84 141) (bydi-report--consume-undercover-report)))))
 
+(ert-deftest bydi-report--find-test-helper ()
+
+  (defvar bydi-report--test-helper-location)
+
+  (ert-with-temp-file helper-file
+    (let ((root (file-name-parent-directory helper-file)))
+
+      (bydi (project-current
+             (:mock project-root :return root)
+             pop-to-buffer)
+
+        (should-error (bydi-report-find-test-helper))
+
+        (setq bydi-report--test-helper-location (string-trim-left helper-file "/tmp/"))
+
+        (bydi-report-find-test-helper)
+
+        (bydi-was-called pop-to-buffer)))))
+
 ;;; bydi-report-test.el ends here
 
 ;; Local Variables:

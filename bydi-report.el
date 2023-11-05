@@ -111,6 +111,23 @@ An optional REPORTER function can be passed."
      'ert-runner-reporter-run-ended-functions
      reporter)))
 
+(declare-function project-root "project.el")
+
+(defvar bydi-report--test-helper-location "test/test-helper.el")
+
+(defun bydi-report--find-test-helper ()
+  "Find the test helper file.
+
+This calls `pop-to-buffer' with flag NO-RECORD."
+  (let* ((project (project-current t))
+         (root (project-root project))
+         (helper (expand-file-name bydi-report--test-helper-location root)))
+
+    (unless (file-exists-p helper)
+      (user-error "Project at %s has no test helper!" root))
+
+    (pop-to-buffer (find-file-noselect helper) nil t)))
+
 ;;; -- `undercover'
 
 (defvar undercover-force-coverage)
@@ -162,6 +179,13 @@ An optional REPORTER function can be passed."
 (defun bydi-report-setup-undercover (patterns)
   "Set up `undercover' for PATTERNS."
   (bydi-report--setup-undercover patterns))
+
+;;;###autoload
+(defun bydi-report-find-test-helper ()
+  "Find the test helper for the current project."
+  (interactive)
+
+  (bydi-report--find-test-helper))
 
 (provide 'bydi-report)
 

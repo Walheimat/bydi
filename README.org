@@ -319,6 +319,9 @@ The main recipe is the following:
 (bydi-report-setup-ert-runner #'my-reporter)
 #+end_src
 
+There's also convenience command =bydi-report-find-test-helper= to find
+the helper file =ert-runner= uses.
+
 ** Limitations
 
 Inline functions (those using =defsubst=) can't be mocked. If you're
