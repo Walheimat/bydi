@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Command `bydi-report-find-test-helper` to find the test helper
   `ert-runner` uses.
 
+## Fixed
+
+- The package name in the Makefile.
+
 ## [v0.5.3]
 
 ### Fixed
