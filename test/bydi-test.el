@@ -271,31 +271,31 @@
   (bydi-match-expansion
    (bydi-was-called apply)
    '(let ((actual (gethash 'apply bydi--history 'not-called)))
-      (should (bydi-verify--was-called 'apply nil actual))))
+      (should (bydi-verify--was-called 'apply 'called actual))))
 
   (bydi-match-expansion
    (bydi-was-called apply t)
    '(let ((actual (gethash 'apply bydi--history 'not-called)))
-      (should (bydi-verify--was-called 'apply nil actual))
+      (should (bydi-verify--was-called 'apply 'called actual))
       (bydi-clear-mocks-for 'apply))))
 
 (ert-deftest bydi-was-called-with ()
   (bydi-match-expansion
    (bydi-was-called-with apply '(a b c))
-   '(let ((actual (gethash 'apply bydi--history)))
-      (should (bydi-verify--was-called-with 'apply '(a b c) (car actual)))))
+   '(let ((actual (car-safe (gethash 'apply bydi--history))))
+     (should (bydi-verify--was-called-with 'apply '(a b c) actual))))
 
   (bydi-match-expansion
    (bydi-was-called-with apply '(a b c) t)
-   '(let ((actual (gethash 'apply bydi--history)))
-      (should (bydi-verify--was-called-with 'apply '(a b c) (car actual)))
+   '(let ((actual (car-safe (gethash 'apply bydi--history))))
+      (should (bydi-verify--was-called-with 'apply '(a b c) actual))
       (bydi-clear-mocks-for 'apply))))
 
 (ert-deftest bydi-was-called-with--single-item ()
   (bydi-match-expansion
    (bydi-was-called-with apply "test")
-   '(let ((actual (gethash 'apply bydi--history)))
-      (should (bydi-verify--was-called-with 'apply "test" (car actual))))))
+   '(let ((actual (car-safe (gethash 'apply bydi--history))))
+      (should (bydi-verify--was-called-with 'apply "test" actual)))))
 
 (ert-deftest bydi-was-called-with--partial-matching ()
   (let ((actual '(a b c d))
@@ -339,7 +339,7 @@
   (bydi-match-expansion
    (bydi-was-not-called apply)
    '(let ((actual (gethash 'apply bydi--history 'not-called)))
-      (should (bydi-verify--was-not-called 'apply nil actual)))))
+      (should (bydi-verify--was-not-called 'apply 'not-called actual)))))
 
 (ert-deftest bydi-was-called-n-times ()
   (bydi-match-expansion

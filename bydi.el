@@ -128,17 +128,15 @@ of this form."
 
 If CLEAR is t, clear the history of calls of that function."
   `(let ((actual (gethash ',fun bydi--history 'not-called)))
-
      ,@(delq
         nil
-        `((should (bydi-verify--was-called ',fun nil actual))
-
+        `((should (bydi-verify--was-called ',fun 'called actual))
           ,(when clear `(bydi-clear-mocks-for ',fun))))))
 
 (defmacro bydi-was-not-called (fun)
   "Check if mocked FUN was not called."
   `(let ((actual (gethash ',fun bydi--history 'not-called)))
-     (should (bydi-verify--was-not-called ',fun nil actual))))
+     (should (bydi-verify--was-not-called ',fun 'not-called actual))))
 
 (defmacro bydi-was-called-with (fun expected &optional clear)
   "Check if FUN was called with EXPECTED.
@@ -146,10 +144,10 @@ If CLEAR is t, clear the history of calls of that function."
 If CLEAR is t, clear the history of calls of that function."
   (declare (indent defun))
 
-  `(let ((actual (gethash ',fun bydi--history)))
+  `(let ((actual (car-safe (gethash ',fun bydi--history))))
      ,@(delq
         nil
-        `((should (bydi-verify--was-called-with ',fun ,expected (car actual)))
+        `((should (bydi-verify--was-called-with ',fun ,expected actual))
           ,(when clear `(bydi-clear-mocks-for ',fun))))))
 
 (defmacro bydi-was-called-nth-with (fun expected index)
@@ -468,12 +466,20 @@ Only records when OPERATION is a let or set binding."
 
 (defun bydi-explain--explain-actual (fun expected actual)
   "Explain that FUN was called with ACTUAL not EXPECTED."
-  (if (equal actual 'not-called)
-      `(no-call ',fun)
-    `(call ',fun
-           :reason ,(ert--explain-equal-rec expected actual)
-           :expected ,(bydi-explain--make-readable expected)
-           :actual ,(bydi-explain--make-readable actual))))
+  (let ((safe-exp (bydi-verify--safe-exp expected)))
+
+    (cond
+     ((equal expected 'not-called)
+      `(call ',fun :reason (unexpected-call)))
+
+     ((eq expected 'called)
+      `(no-call ',fun))
+
+     (t
+      `(call ',fun
+             :reason ,(ert--explain-equal-rec safe-exp actual)
+             :expected ,(bydi-explain--make-readable safe-exp)
+             :actual ,(bydi-explain--make-readable actual))))))
 
 (defun bydi-explain--explain-actual-setting (var exp-to to)
   "Explain that VAR was not set as expected.
