@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 
 - The package name in the Makefile.
+- The execution of `bydi` is now wrapped by special form
+  `unwind-protect` to avoid a faulty test from breaking other tests.
 
 ## [v0.5.3]
 

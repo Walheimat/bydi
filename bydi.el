@@ -117,9 +117,14 @@ of this form."
                 (bydi-mock--sometimes t)
                 ,@(bydi-mock--mocks instructions))
 
-       (bydi--setup)
-       ,@body
-       (bydi--teardown))))
+
+       (unwind-protect
+
+           (progn
+             (bydi--setup)
+             ,@body)
+
+         (bydi--teardown)))))
 
 ;;; -- Calling macros
 

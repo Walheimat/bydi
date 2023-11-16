@@ -34,9 +34,11 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi--record (list 'bydi-ra r)))))
-      (bydi--setup)
-      (should (always))
-      (bydi--teardown))))
+      (unwind-protect
+          (progn
+            (bydi--setup)
+            (should (always)))
+        (bydi--teardown)))))
 
 (ert-deftest bydi-with-mock--old-usage ()
   (bydi-match-expansion
@@ -58,9 +60,11 @@
             (interactive)
             (apply 'bydi--record (list 'format r))
             (apply (lambda (a &rest _args) a) r))))
-      (bydi--setup)
-      (should (always))
-      (bydi--teardown))))
+      (unwind-protect
+          (progn
+            (bydi--setup)
+            (should (always)))
+        (bydi--teardown)))))
 
 (ert-deftest bydi-with-mock--explicit ()
   (bydi-match-expansion
@@ -94,9 +98,11 @@
             (interactive)
             (apply 'bydi--record (list 'buffer-live-p r))
             (apply #'always r))))
-      (bydi--setup)
-      (should (always))
-      (bydi--teardown))))
+      (unwind-protect
+          (progn
+            (bydi--setup)
+            (should (always)))
+        (bydi--teardown)))))
 
 (ert-deftest bydi-with-mock--spies-and-watchers ()
   (bydi-match-expansion
@@ -115,9 +121,12 @@
             (interactive)
             (apply 'bydi--record (list 'abbrev-table-p r))
             (apply #'bydi-rt r))))
-      (bydi--setup)
-      (should (always))
-      (bydi--teardown))))
+
+      (unwind-protect
+          (progn
+            (bydi--setup)
+            (should (always)))
+        (bydi--teardown)))))
 
 (ert-deftest bydi-with-mock--shorthands ()
   (bydi-match-expansion
@@ -145,9 +154,11 @@
             (interactive)
             (apply 'bydi--record (list 'derived-mode-p r))
             (funcall #'bydi-mock--sometimes))))
-      (bydi--setup)
-      (should (always))
-      (bydi--teardown))))
+      (unwind-protect
+          (progn
+            (bydi--setup)
+            (should (always)))
+        (bydi--teardown)))))
 
 (ert-deftest bydi-with-mock--single-function ()
   (bydi-match-expansion
@@ -162,9 +173,11 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi--record (list 'bydi-rf r)))))
-      (bydi--setup)
-      (should (always))
-      (bydi--teardown))))
+      (unwind-protect
+          (progn
+            (bydi--setup)
+            (should (always)))
+        (bydi--teardown)))))
 
 (ert-deftest bydi-with-mock--unmockable ()
   (bydi-with-mock (bydi-mock--check)
@@ -185,9 +198,11 @@
                 (apply 'bydi--record
                        (list 'new-line r))
                 (apply #'ignore r))))
-          (bydi--setup)
-          nil
-          (bydi--teardown))))
+          (unwind-protect
+              (progn
+                (bydi--setup)
+                nil)
+            (bydi--teardown)))))
     (bydi-was-called bydi-mock--check)))
 
 (ert-deftest bydi-with-mock--returning-nil ()
@@ -207,9 +222,11 @@
              (interactive)
              (apply 'bydi--record
                     (list 'ignore r)))))
-       (bydi--setup)
-       nil
-       (bydi--teardown)))
+        (unwind-protect
+            (progn
+              (bydi--setup)
+              nil)
+          (bydi--teardown))))
 
     (bydi-was-called-with bydi--warn "Returning 'nil' may lead to unexpected results")))
 
