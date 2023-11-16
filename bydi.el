@@ -176,10 +176,10 @@ If CLEAR is t, clear the history of calls of that function."
   "Check that VAR was set to TO.
 
 If CLEAR is t, clear the history of assignments to that variable."
-  `(let ((actual (gethash ',var bydi--history)))
+  `(let ((actual (car-safe (gethash ',var bydi--history))))
      ,@(delq
         nil
-        `((should (bydi-verify--was-set-to ',var ,to (car actual)))
+        `((should (bydi-verify--was-set-to ',var ,to actual))
           ,(when clear `(bydi-clear-mocks-for ',var))))))
 
 (defmacro bydi-was-set-to-nth (var to index)
@@ -189,8 +189,8 @@ If CLEAR is t, clear the history of assignments to that variable."
 
 (defmacro bydi-was-set-to-last (var to)
   "Check that VAR was set to TO during last setting."
-  `(let ((actual (last (reverse (gethash ',var bydi--history)))))
-     (should (bydi-verify--was-set-to ',var ,to (car actual)))))
+  `(let ((actual (car-safe (last (reverse (gethash ',var bydi--history))))))
+     (should (bydi-verify--was-set-to ',var ,to actual))))
 
 (defmacro bydi-was-set-n-times (var expected)
   "Verify that VAR was set EXPECTED times."
