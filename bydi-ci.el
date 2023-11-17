@@ -12,6 +12,8 @@
 
 ;;; Code:
 
+(require 'bydi)
+
 (defvar bydi-ci--env-github-workspace "GITHUB_WORKSPACE"
   "Location of the project in GitHub action.")
 

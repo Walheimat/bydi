@@ -6,7 +6,7 @@
 
 ;;; Code:
 
-(require 'bydi nil t)
+(require 'bydi)
 
 (ert-deftest bydi-rf ()
   (should (equal (bydi-rf 'test 'this 'now) 'test)))

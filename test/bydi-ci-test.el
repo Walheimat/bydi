@@ -6,7 +6,7 @@
 
 ;;; Code:
 
-(require 'bydi-ci nil t)
+(require 'bydi-ci)
 
 (ert-deftest bydi-ci-setup-paths ()
   (let ((load-path nil)
