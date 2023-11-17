@@ -149,21 +149,24 @@ If CLEAR is t, clear the history of calls of that function."
 If CLEAR is t, clear the history of calls of that function."
   (declare (indent defun))
 
-  `(let ((actual (car-safe (gethash ',fun bydi--history))))
+  `(let ((expected (bydi-verify--safe-exp ,expected))
+         (actual (car-safe (gethash ',fun bydi--history))))
      ,@(delq
         nil
-        `((should (bydi-verify--was-called-with ',fun ,expected actual))
+        `((should (bydi-verify--was-called-with ',fun expected actual))
           ,(when clear `(bydi-clear-mocks-for ',fun))))))
 
 (defmacro bydi-was-called-nth-with (fun expected index)
   "Check if FUN was called with EXPECTED on the INDEXth call."
-  `(let ((actual (nth ,index (reverse (gethash ',fun bydi--history)))))
-     (should (bydi-verify--was-called-with ',fun ,expected actual))))
+  `(let ((expected (bydi-verify--safe-exp ,expected))
+         (actual (nth ,index (reverse (gethash ',fun bydi--history)))))
+     (should (bydi-verify--was-called-with ',fun expected actual))))
 
 (defmacro bydi-was-called-last-with (fun expected)
   "Check if FUN was called with EXPECTED on the last call."
-  `(let ((actual (car-safe (last (reverse (gethash ',fun bydi--history))))))
-     (should (bydi-verify--was-called-with ',fun ,expected actual))))
+  `(let ((expected (bydi-verify--safe-exp ,expected))
+         (actual (car-safe (last (reverse (gethash ',fun bydi--history))))))
+     (should (bydi-verify--was-called-with ',fun expected actual))))
 
 (defmacro bydi-was-called-n-times (fun expected)
   "Check if mocked FUN was called EXPECTED times."
@@ -346,6 +349,14 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
     sexp)
    (t (list sexp))))
 
+(defun bydi-verify--unwrap-single-item (a b)
+  "If A and B are both single-item lists, unwrap them."
+  (or (and (listp a)
+           (listp b)
+           (= 1 (length a) (length b))
+           (list (nth 0 a) (nth 0 b)))
+      (list a b)))
+
 ;;; -- Mocking
 
 (defun bydi-mock--mocks (instructions)
@@ -469,48 +480,35 @@ Only records when OPERATION is a let or set binding."
 
 ;;; -- Explaining
 
-(defun bydi-explain--explain-actual (fun expected actual)
+(defun bydi-explain--wrong-call (fun expected actual)
   "Explain that FUN was called with ACTUAL not EXPECTED."
-  (let ((safe-exp (bydi-verify--safe-exp expected)))
+  (cond
+   ((equal expected 'not-called)
+    `(was-called ',fun :args ,actual))
 
-    (cond
-     ((equal expected 'not-called)
-      `(call ',fun :reason (unexpected-call)))
+   ((eq expected 'called)
+    `(never-called ',fun))
 
-     ((eq expected 'called)
-      `(no-call ',fun))
+   (t
+    `(wrong-arguments
+      ',fun
+      :reason ,(cl-destructuring-bind (a b)
+                   (bydi-verify--unwrap-single-item expected actual)
+                 (ert--explain-equal-rec a b))))))
 
-     (t
-      `(call ',fun
-             :reason ,(ert--explain-equal-rec safe-exp actual)
-             :expected ,(bydi-explain--make-readable safe-exp)
-             :actual ,(bydi-explain--make-readable actual))))))
+(defun bydi-explain--wrong-setting (var expected actual)
+  "Explain that VAR was set to ACTUAL, not EXPECTED."
+  (cond
+   ((eq expected 'not-set)
+    `(was-set ',var :to ,actual))
 
-(defun bydi-explain--explain-actual-setting (var exp-to to)
-  "Explain that VAR was not set as expected.
+   ((eq expected 'set)
+    `(never-set ',var))
 
-It was set from FROM not EXP-FROM or to TO not EXP-TO."
-  `(set ',var :reason ,(ert--explain-equal-rec exp-to to)))
-
-(defun bydi-explain--explain-setting (var expected actual)
-  "Explain that VAR was (or was not) set.
-
-This depends on EXPECTED. If it was set unexpectedly shows
-ACTUAL."
-  `(set ',var
-        :reason ,(if (equal expected 'set)
-                     '(was-not-set)
-                   `(was-set ,actual))))
-
-(put 'bydi-verify--was-called 'ert-explainer 'bydi-explain--explain-actual)
-(put 'bydi-verify--was-not-called 'ert-explainer 'bydi-explain--explain-actual)
-(put 'bydi-verify--was-called-with 'ert-explainer 'bydi-explain--explain-actual)
-(put 'bydi-verify--was-called-n-times 'ert-explainer 'bydi-explain--explain-actual)
-
-(put 'bydi-verify--was-set 'ert-explainer 'bydi-explain--explain-setting)
-(put 'bydi-verify--was-not-set 'ert-explainer 'bydi-explain--explain-setting)
-(put 'bydi-verify--was-set-to 'ert-explainer 'bydi-explain--explain-actual-setting)
-(put 'bydi-verify--was-set-n-times 'ert-explainer 'bydi-explain--explain-actual-setting)
+   (t
+    `(wrong-setting
+      ',var
+      :reason ,(ert--explain-equal-rec expected actual)))))
 
 (defun bydi-explain--explain-mismatch (a b)
   "Explain that A didn't match B."
@@ -521,14 +519,17 @@ ACTUAL."
       :wanted ,expanded
       :got ,b)))
 
-(put 'bydi-verify--matches 'ert-explainer 'bydi-explain--explain-mismatch)
+(put 'bydi-verify--was-called 'ert-explainer 'bydi-explain--wrong-call)
+(put 'bydi-verify--was-not-called 'ert-explainer 'bydi-explain--wrong-call)
+(put 'bydi-verify--was-called-with 'ert-explainer 'bydi-explain--wrong-call)
+(put 'bydi-verify--was-called-n-times 'ert-explainer 'bydi-explain--wrong-call)
 
-(defun bydi-explain--make-readable (data)
-  "Make sure DATA is readable."
-  (cond
-   ((null data)
-    'null)
-   (t data)))
+(put 'bydi-verify--was-set 'ert-explainer 'bydi-explain--wrong-setting)
+(put 'bydi-verify--was-not-set 'ert-explainer 'bydi-explain--wrong-setting)
+(put 'bydi-verify--was-set-to 'ert-explainer 'bydi-explain--wrong-setting)
+(put 'bydi-verify--was-set-n-times 'ert-explainer 'bydi-explain--wrong-setting)
+
+(put 'bydi-verify--matches 'ert-explainer 'bydi-explain--explain-mismatch)
 
 ;;; -- API
 

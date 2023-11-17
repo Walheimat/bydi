@@ -11,10 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Command `bydi-report-find-test-helper` to find the test helper
   `ert-runner` uses.
-- Explainer for `bydi-was{-not}-called` should be more useful now.
-- Explainer for `bydi-explain--explain-actual` now uses
-  `bydi-verify--safe-exp` so that calling `ert--explain-equal-rec`
-  yields something useful.
+- Explainers for `bydi-was{-not}-called` and `bydi-was{-not}-called`
+  should be more useful now.
 
 ## Fixed
 
