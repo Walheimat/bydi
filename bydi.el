@@ -25,6 +25,7 @@
 
 ;;; Code:
 
+(require 'ert)
 (require 'ert-x)
 (require 'cl-lib)
 (require 'compat nil t)

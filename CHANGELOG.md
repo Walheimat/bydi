@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `bydi-ci` now requires `bydi` and `bydi` requires `ert`.
+
+## [v0.5.4]
+
 ### Added
 
 - Command `bydi-report-find-test-helper` to find the test helper
