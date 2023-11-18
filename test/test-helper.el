@@ -34,6 +34,8 @@
             (list :report-file report-file)
             (list :send-report nil)))))
 
+(setq ert-batch-print-level 20)
+
 ;;; test-helper.el ends here
 
 ;; Local Variables:

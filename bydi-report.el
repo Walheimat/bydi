@@ -13,6 +13,7 @@
 ;;; Code:
 
 (require 'bydi)
+(require 'cl-macs)
 
 (defvar bydi-report--temp-files nil)
 
@@ -186,6 +187,16 @@ An optional REPORTER function can be passed."
   (interactive)
 
   (bydi-report--find-test-helper))
+
+;;;###autoload
+(cl-defun bydi-report-setup-ert (&key increase-print-depth)
+  "Setup `ert'.
+
+If INCREASE-PRINT-DEPTH is t, `ert-batch-print-level' will be
+greatly increased. This is especially useful when using
+`bydi-match-expansion' if the macro to match is complex."
+  (when increase-print-depth
+    (setq ert-batch-print-level 10)))
 
 (provide 'bydi-report)
 

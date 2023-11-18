@@ -110,6 +110,14 @@
 
         (bydi-was-called pop-to-buffer)))))
 
+(ert-deftest bydi-report--setup-ert ()
+  (defvar ert-batch-print-level)
+  (bydi ((:watch ert-batch-print-level))
+
+    (bydi-report-setup-ert :increase-print-depth t)
+
+    (bydi-was-set-to ert-batch-print-level 10)))
+
 ;;; bydi-report-test.el ends here
 
 ;; Local Variables:

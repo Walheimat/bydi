@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Function `bydi-report-setup-ert` that accepts key
+  `:increase-print-depth` to do just that.
+
 ### Fixed
 
 - `bydi-ci` now requires `bydi` and `bydi` requires `ert`.
