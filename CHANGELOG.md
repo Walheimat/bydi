@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `bydi-ci` now requires `bydi` and `bydi` requires `ert`.
+- The explainer for `bydi-match-expansion` now shows actual value as
+  actual and expected as expected.
 
 ## [v0.5.4]
 

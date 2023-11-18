@@ -511,14 +511,14 @@ Only records when OPERATION is a let or set binding."
       ',var
       :reason ,(ert--explain-equal-rec expected actual)))))
 
-(defun bydi-explain--explain-mismatch (a b)
-  "Explain that A didn't match B."
-  (let ((expanded (macroexpand-1 a)))
+(defun bydi-explain--explain-mismatch (actual expected)
+  "Explain that ACTUAL didn't match EXPECTED."
+  (let ((actual (macroexpand-1 actual)))
 
     `(no-match
-      :reason ,(ert--explain-equal-rec expanded b)
-      :wanted ,expanded
-      :got ,b)))
+      :reason ,(ert--explain-equal-rec expected actual)
+      :wanted ,expected
+      :got ,actual)))
 
 (put 'bydi-verify--was-called 'ert-explainer 'bydi-explain--wrong-call)
 (put 'bydi-verify--was-not-called 'ert-explainer 'bydi-explain--wrong-call)
