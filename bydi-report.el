@@ -3,7 +3,7 @@
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
 ;; Homepage: https://github.com/Walheimat/bydi
 ;; Version: 0.5.5
-;; Package-Requires: ((emacs "28.1"))
+;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: extensions
 
 ;;; Commentary:
@@ -13,7 +13,7 @@
 ;;; Code:
 
 (require 'bydi)
-(require 'cl-macs)
+(require 'cl-lib)
 
 (defvar bydi-report--temp-files nil)
 
