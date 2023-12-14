@@ -28,7 +28,6 @@ You can add it as a dependency in your Cask file:
  (depends-on "bydi" :git "https://github.com/Walheimat/bydi" :branch "trunk"))
 #+END_SRC
 
-
 ** Usage in Tests
 
 Let's look at some simple examples. Say you want to test a function
@@ -287,40 +286,6 @@ Verifying macro expansion can be done with =bydi-match-expansion=.
      (message "Expanding your macro")
      (setq some-variable 'some-value))))
 #+end_src
-
-** Usage in Test Suites
-
-Please have a look at [[https://github.com/Walheimat/wal-emacs][my Emacs configuration]] for real-world usage
-examples that set up =ert-runner= and =undercover= (the same is done here
-but since we test =bydi= itself, it's not using its setup functions).
-
-The main recipe is the following:
-
-#+begin_src emacs-lisp
-(require 'bydi)
-
-(require 'bydi-ci)
-
-(bydi-ci-setup-paths)
-;; or
-(bydi-ci-setup-paths '("relative/one" "relative/two"))
-
-(require 'bydi-report)
-
-(bydi-report-setup-undercover (list "my-package.el"))
-;; or
-(bydi-report-setup-undercover  (list "src/*.el" "root.el"))
-
-(bydi-report-setup-ert-runner)
-;; or
-(defun my-reporter (&rest _)
-  "Notify."
-  (message "We are done here"))
-(bydi-report-setup-ert-runner #'my-reporter)
-#+end_src
-
-There's also convenience command =bydi-report-find-test-helper= to find
-the helper file =ert-runner= uses.
 
 ** Limitations
 

@@ -6,35 +6,12 @@
 
 ;;; Code:
 
-(require 'undercover nil t)
+(require 'dinghy-rope)
 
-(let ((source-dir (expand-file-name (or (getenv "GITHUB_WORKSPACE")
-                                        default-directory)))
-      (report-format 'text)
-      (report-file "./coverage/results.txt"))
-
-  (add-to-list 'load-path source-dir)
-
-  (setq undercover-force-coverage t)
-
-  (cond
-   ((getenv "CI")
-    (setq report-format 'lcov
-          report-file nil))
-
-   ((getenv "COVERAGE_WITH_JSON")
-    (setq undercover--merge-report nil
-          report-format 'simplecov
-          report-file "./coverage/.resultset.json")))
-
-  (undercover--setup
-   (append (list "bydi.el" "bydi-report.el" "bydi-ci.el")
-           (list
-            (list :report-format report-format)
-            (list :report-file report-file)
-            (list :send-report nil)))))
-
-(setq ert-batch-print-level 20)
+(dinghy-rope-setup-paths)
+(dinghy-rope-setup-undercover '("bydi.el" "bydi-report.el" "bydi-ci.el"))
+(dinghy-rope-setup-ert-runner)
+(dinghy-rope-setup-ert :increase-print-depth t)
 
 ;;; test-helper.el ends here
 
