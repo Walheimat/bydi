@@ -228,7 +228,7 @@
               nil)
           (bydi--teardown))))
 
-    (bydi-was-called-with bydi--warn "Returning 'nil' may lead to unexpected results")))
+    (bydi-was-called-with bydi--warn "Returning `nil' may lead to unexpected results")))
 
 (ert-deftest bydi-clear-mocks ()
   (let ((bydi--history (make-hash-table :test 'equal)))
@@ -256,7 +256,7 @@
     (let ((bydi-mock--risky '(ignore)))
 
       (bydi-mock--check 'ignore '(:mock ignore :return nil))
-      (bydi-was-called-with display-warning (list 'bydi "Mocking 'ignore' may lead to issues" :warning))
+      (bydi-was-called-with display-warning (list 'bydi "Mocking `ignore' may lead to issues" :warning))
 
       (bydi-clear-mocks)
       (bydi-mock--check 'ignore '(:risky-mock ignore :return nil))

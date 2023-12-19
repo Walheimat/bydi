@@ -385,7 +385,7 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
     (cond
      ((plist-member mock :return)
       (unless (plist-get mock :return)
-        (bydi--warn "Returning 'nil' may lead to unexpected results"))
+        (bydi--warn "Returning `nil' may lead to unexpected results"))
       `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) ,(or (plist-get mock :return))))
      ((plist-member mock :with)
       `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) (apply #',(plist-get mock :with) r)))
@@ -455,7 +455,7 @@ Optionally, return RETURN."
   (when (and (memq fun bydi-mock--risky)
              (not (memq :risky-mock instruction)))
 
-    (bydi--warn "Mocking '%s' may lead to issues" fun)))
+    (bydi--warn "Mocking `%s' may lead to issues" fun)))
 
 ;;; -- Spying
 
