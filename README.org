@@ -11,9 +11,12 @@
 </a>
 #+END_HTML
 
-=bydi= extends =ert= with some simple mocking macros. The macros allow
-you to mock any function and make assertions on what was (or wasn't)
-called and with what arguments.
+=bydi= extends =ert= with some simple mocking macros.
+
+These macros allow you to mock (or spy on) any function and make
+assertions on what was (or wasn't) called and with what arguments. You
+can also watch variables and make assertions on what was (or wasn't)
+set and to what value.
 
 It grew out of my [[https://github.com/Walheimat/wal-emacs][configuration]] and therefore is currently still
 heavily geared towards my usage.
@@ -300,6 +303,19 @@ be better off creating a helper setup macro for your structs.
   name)
 
 (bydi ((:mock horse-name :return "no-name"))
+  (should (string= "no-name" (horse-name 'not-a-horse))))
+
+;; Or better.
+
+(cl-defstruct (horse)
+  "A horse with a name."
+  name)
+
+(defun horse-name-redirect (horse)
+  "Return the horse's name."
+  (horse-name horse))
+
+(bydi ((:mock horse-name-redirect :return "no-name"))
   (should (string= "no-name" (horse-name 'not-a-horse))))
 #+end_src
 
