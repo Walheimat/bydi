@@ -60,7 +60,7 @@ Allows verifying only those arguments passed to a mocked function
 that are of interest.")
 
 (defvar bydi-spy--spies nil
-  "List of functions spied upon during `bydi-with-mock'.
+  "List of functions spied upon during `bydi--mock'.
 
 Each function will be advised to record the arguments it was
 called with.")
@@ -71,7 +71,7 @@ called with.")
 Allows removing anonymous advice.")
 
 (defvar bydi-watch--watchers nil
-  "List of variables watched during `bydi-with-mock'.
+  "List of variables watched during `bydi--mock'.
 
 Each variable will be watched to record the values assigned to
 it.")
@@ -84,7 +84,7 @@ Functions in this list will have their history cleared on calling
 
 ;;; -- Macros
 
-(defmacro bydi-with-mock (to-mock &rest body)
+(defmacro bydi--mock (to-mock &rest body)
   "Evaluate a form with mocks.
 
 TO-MOCK is a list of symbols to mock. These can be functions or
@@ -110,7 +110,7 @@ assignments are recorded, or a cons cell of shape (FUN . REPLACE)
 returning the result of calling REPLACE.
 
 BODY is the form evaluated while the mocking, spying and watching
-is in place. Any verification macro `bydi-was-*' needs to be part
+is in place. Any `bydi-was-*' verification macro needs to be part
 of this form."
   (declare (indent defun))
 
@@ -405,8 +405,10 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
       (let ((fun (plist-get mock :othertimes)))
         (add-to-list 'bydi-mock--volatile fun)
         `(,fun (not (funcall #'bydi-mock--sometimes)))))))
+
    ((consp mock)
     `(,(car mock) (apply ,(cdr mock) r)))
+
    (t `(,mock nil))))
 
 (defun bydi-mock--bind (fun &optional return)
@@ -572,7 +574,10 @@ functions mocked using `:sometimes' or `:othertimes'."
       (bydi-clear-mocks-for it))))
 
 ;;;###autoload
-(defalias 'bydi 'bydi-with-mock)
+(defalias 'bydi 'bydi--mock)
+
+;;;###autoload
+(defalias 'bydi-with-mock 'bydi--mock)
 
 (provide 'bydi)
 

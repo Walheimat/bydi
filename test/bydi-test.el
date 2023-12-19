@@ -17,9 +17,9 @@
 (ert-deftest bydi-rt ()
   (should (equal (bydi-rt 'test 'this 'now) 'testing)))
 
-(ert-deftest bydi-with-mock--simple ()
+(ert-deftest bydi--mock--simple ()
   (bydi-match-expansion
-   (bydi-with-mock (bydi-rf bydi-ra)
+   (bydi--mock (bydi-rf bydi-ra)
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
@@ -40,9 +40,9 @@
             (should (always)))
         (bydi--teardown)))))
 
-(ert-deftest bydi-with-mock--old-usage ()
+(ert-deftest bydi--mock--old-usage ()
   (bydi-match-expansion
-   (bydi-with-mock ((bydi-rt . #'ignore)
+   (bydi--mock ((bydi-rt . #'ignore)
                     (format . (lambda (a &rest _args) a)))
      (should (always)))
    `(cl-letf*
@@ -66,9 +66,9 @@
             (should (always)))
         (bydi--teardown)))))
 
-(ert-deftest bydi-with-mock--explicit ()
+(ert-deftest bydi--mock--explicit ()
   (bydi-match-expansion
-   (bydi-with-mock ((:return "hello" :mock substring)
+   (bydi--mock ((:return "hello" :mock substring)
                     (:risky-mock buffer-file-name :return "/tmp/test.el")
                     (:risky-mock bydi-ra :with ignore)
                     (:with always :mock buffer-live-p))
@@ -104,9 +104,9 @@
             (should (always)))
         (bydi--teardown)))))
 
-(ert-deftest bydi-with-mock--spies-and-watchers ()
+(ert-deftest bydi--mock--spies-and-watchers ()
   (bydi-match-expansion
-   (bydi-with-mock ((:spy buffer-live-p)
+   (bydi--mock ((:spy buffer-live-p)
                     (:mock abbrev-table-p :with bydi-rt)
                     (:spy derived-mode-p)
                     (:watch major-mode))
@@ -128,9 +128,9 @@
             (should (always)))
         (bydi--teardown)))))
 
-(ert-deftest bydi-with-mock--shorthands ()
+(ert-deftest bydi--mock--shorthands ()
   (bydi-match-expansion
-   (bydi-with-mock ((:ignore buffer-live-p)
+   (bydi--mock ((:ignore buffer-live-p)
                     (:always abbrev-table-p)
                     (:sometimes derived-mode-p))
      (should (always)))
@@ -160,9 +160,9 @@
             (should (always)))
         (bydi--teardown)))))
 
-(ert-deftest bydi-with-mock--single-function ()
+(ert-deftest bydi--mock--single-function ()
   (bydi-match-expansion
-   (bydi-with-mock bydi-rf
+   (bydi--mock bydi-rf
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
@@ -179,11 +179,11 @@
             (should (always)))
         (bydi--teardown)))))
 
-(ert-deftest bydi-with-mock--unmockable ()
-  (bydi-with-mock (bydi-mock--check)
+(ert-deftest bydi--mock--unmockable ()
+  (bydi--mock (bydi-mock--check)
     (let ((bydi-mock--risky '(new-line)))
       (bydi-match-expansion
-       (bydi-with-mock ((:ignore new-line))
+       (bydi--mock ((:ignore new-line))
          nil)
        '(cl-letf*
             ((bydi--history
@@ -205,10 +205,10 @@
             (bydi--teardown)))))
     (bydi-was-called bydi-mock--check)))
 
-(ert-deftest bydi-with-mock--returning-nil ()
-  (bydi-with-mock (bydi--warn)
+(ert-deftest bydi--mock--returning-nil ()
+  (bydi--mock (bydi--warn)
     (bydi-match-expansion
-     (bydi-with-mock ((:mock ignore :return nil))
+     (bydi--mock ((:mock ignore :return nil))
        nil)
      '(cl-letf*
          ((bydi--history
