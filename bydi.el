@@ -76,6 +76,12 @@ Allows removing anonymous advice.")
 Each variable will be watched to record the values assigned to
 it.")
 
+(defvar bydi-mock--volatile nil
+  "List of functions mocked using `:sometimes' or `:othertimes'.
+
+Functions in this list will have their history cleared on calling
+`bydi-toggle-sometimes'.")
+
 ;;; -- Macros
 
 (defmacro bydi-with-mock (to-mock &rest body)
@@ -389,9 +395,13 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
      ((plist-member mock :always)
       `(,(plist-get mock :always) (apply #'always r)))
      ((plist-member mock :sometimes)
-      `(,(plist-get mock :sometimes) (funcall #'bydi-mock--sometimes)))
+      (let ((fun (plist-get mock :sometimes)))
+        (add-to-list 'bydi-mock--volatile fun)
+        `(,fun (funcall #'bydi-mock--sometimes))))
      ((plist-member mock :othertimes)
-      `(,(plist-get mock :othertimes) (not (funcall #'bydi-mock--sometimes))))))
+      (let ((fun (plist-get mock :othertimes)))
+        (add-to-list 'bydi-mock--volatile fun)
+        `(,fun (not (funcall #'bydi-mock--sometimes)))))))
    ((consp mock)
     `(,(car mock) (apply ,(cdr mock) r)))
    (t `(,mock nil))))
@@ -535,21 +545,28 @@ Only records when OPERATION is a let or set binding."
 ;;; -- API
 
 (defun bydi-clear-mocks ()
-  "Clear mocks."
+  "Clear all mocks.
+
+This will clear the entire history (which is shared by functions
+and variables)."
   (clrhash bydi--history))
 
-(defun bydi-clear-mocks-for (function)
-  "Clear mocks for FUNCTION."
-  (remhash function bydi--history))
+(defun bydi-clear-mocks-for (symbol)
+  "Clear mocks for SYMBOL.
+
+SYMBOL can be the name of a function or a variable."
+  (remhash symbol bydi--history))
 
 (defun bydi-toggle-sometimes (&optional no-clear)
   "Toggle variable `bydi-mock--sometimes'.
 
-Unless NO-CLEAR is t, this also calls `bydi-clear-mocks'."
+Unless NO-CLEAR is t, this also calls `bydi-clear-mocks' for all
+functions mocked using `:sometimes' or `:othertimes'."
   (setq bydi-mock--sometimes (not bydi-mock--sometimes))
 
   (unless no-clear
-    (bydi-clear-mocks)))
+    (dolist (it bydi-mock--volatile)
+      (bydi-clear-mocks-for it))))
 
 ;;;###autoload
 (defalias 'bydi 'bydi-with-mock)

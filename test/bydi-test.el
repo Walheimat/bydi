@@ -265,24 +265,28 @@
 (ert-deftest bydi-toggle-sometimes ()
   (bydi ((:sometimes buffer-live-p)
          (:othertimes hash-table-p)
-         (:spy bydi-clear-mocks))
+         (:always url-p)
+         (:spy bydi-clear-mocks-for))
 
     (should (buffer-live-p))
     (should-not (hash-table-p))
+    (should (url-p))
 
     (bydi-toggle-sometimes)
 
     (should-not (buffer-live-p))
     (should (hash-table-p))
 
-    (bydi-was-called bydi-clear-mocks)
+    (should (gethash 'url-p bydi--history))
+
+    (bydi-was-called bydi-clear-mocks-for)
 
     ;; Need to clear manually here.
     (setq bydi--history (make-hash-table :test 'equal))
     (bydi-toggle-sometimes t)
 
     (should (buffer-live-p))
-    (bydi-was-not-called bydi-clear-mocks)))
+    (bydi-was-not-called bydi-clear-mocks-for)))
 
 (ert-deftest bydi-was-called ()
   (bydi-match-expansion
