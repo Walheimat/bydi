@@ -239,17 +239,20 @@ If CLEAR is t, clear the history of assignments to that variable."
 
 ;;; -- Helpers
 
-(defun bydi-rf (a &rest _r)
+(defun bydi-return-first (a &rest _r)
   "Return first argument passed A."
   a)
+(defalias 'bydi-rf 'bydi-return-first)
 
-(defun bydi-ra (&rest r)
+(defun bydi-return-all (&rest r)
   "Return all arguments R."
   r)
+(defalias 'bydi-ra 'bydi-return-all)
 
-(defun bydi-rt (&rest _r)
+(defun bydi-return-testing (&rest _r)
   "Return symbol `testing'."
   'testing)
+(defalias 'bydi-rt 'bydi-return-testing)
 
 ;;; -- Handlers
 
