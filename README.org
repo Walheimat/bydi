@@ -61,9 +61,9 @@ interested in verifying your composition.
     (bydi-was-called project-name)))
 #+end_src
 
-The example introduces macro =bydi-with-mock=, here called using its
-alias =bydi=. =bydi= accepts a list of mocking instructions and a body to
-execute while these instructions are active.
+The example introduces the core macro =bydi=. =bydi= accepts a list of
+mocking instructions and a body to execute while these instructions
+are active.
 
 Note that combining =return= with =nil= will lead to unexpected
 returns as the macro will expand to return the arguments the mocked
