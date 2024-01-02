@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Volatile functions (using `:sometimes` or `:othertimes`) now can be
+  individually toggled using `bydi-toggle-volatile`.
+
 ### Changed
 
 - `bydi-toggle-sometimes` now only clears mocks for functions using

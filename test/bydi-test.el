@@ -25,7 +25,8 @@
         ((bydi--history (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
-         (bydi-mock--sometimes t)
+         (bydi-mock--always 'nil)
+         (bydi-mock--ignore 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -49,7 +50,8 @@
         ((bydi--history (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
-         (bydi-mock--sometimes t)
+         (bydi-mock--always 'nil)
+         (bydi-mock--ignore 'nil)
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
@@ -69,15 +71,16 @@
 (ert-deftest bydi--mock--explicit ()
   (bydi-match-expansion
    (bydi--mock ((:return "hello" :mock substring)
-                    (:risky-mock buffer-file-name :return "/tmp/test.el")
-                    (:risky-mock bydi-ra :with ignore)
-                    (:with always :mock buffer-live-p))
+                (:risky-mock buffer-file-name :return "/tmp/test.el")
+                (:risky-mock bydi-ra :with ignore)
+                (:with always :mock buffer-live-p))
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
-         (bydi-mock--sometimes t)
+         (bydi-mock--always 'nil)
+         (bydi-mock--ignore 'nil)
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
@@ -107,15 +110,16 @@
 (ert-deftest bydi--mock--spies-and-watchers ()
   (bydi-match-expansion
    (bydi--mock ((:spy buffer-live-p)
-                    (:mock abbrev-table-p :with bydi-rt)
-                    (:spy derived-mode-p)
-                    (:watch major-mode))
+                (:mock abbrev-table-p :with bydi-rt)
+                (:spy derived-mode-p)
+                (:watch major-mode))
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
          (bydi-spy--spies '(buffer-live-p derived-mode-p))
          (bydi-watch--watchers '(major-mode))
-         (bydi-mock--sometimes t)
+         (bydi-mock--always 'nil)
+         (bydi-mock--ignore 'nil)
          ((symbol-function 'abbrev-table-p)
           (lambda (&rest r)
             (interactive)
@@ -131,14 +135,15 @@
 (ert-deftest bydi--mock--shorthands ()
   (bydi-match-expansion
    (bydi--mock ((:ignore buffer-live-p)
-                    (:always abbrev-table-p)
-                    (:sometimes derived-mode-p))
+                (:always abbrev-table-p)
+                (:sometimes derived-mode-p))
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
-         (bydi-mock--sometimes t)
+         (bydi-mock--always '(derived-mode-p))
+         (bydi-mock--ignore 'nil)
          ((symbol-function 'buffer-live-p)
           (lambda (&rest r)
             (interactive)
@@ -153,7 +158,7 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi--record (list 'derived-mode-p r))
-            (funcall #'bydi-mock--sometimes))))
+            (funcall #'bydi-mock--volatile 'derived-mode-p))))
       (unwind-protect
           (progn
             (bydi--setup)
@@ -168,7 +173,8 @@
         ((bydi--history (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
-         (bydi-mock--sometimes t)
+         (bydi-mock--always 'nil)
+         (bydi-mock--ignore 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -190,7 +196,8 @@
               (make-hash-table :test 'equal))
              (bydi-spy--spies 'nil)
              (bydi-watch--watchers 'nil)
-             (bydi-mock--sometimes t)
+             (bydi-mock--always 'nil)
+             (bydi-mock--ignore 'nil)
              ((symbol-function 'new-line)
               (lambda
                 (&rest r)
@@ -215,7 +222,8 @@
            (make-hash-table :test 'equal))
           (bydi-spy--spies 'nil)
           (bydi-watch--watchers 'nil)
-          (bydi-mock--sometimes t)
+          (bydi-mock--always 'nil)
+          (bydi-mock--ignore 'nil)
           ((symbol-function 'ignore)
            (lambda
              (&rest r)
@@ -265,19 +273,19 @@
 (ert-deftest bydi-toggle-sometimes ()
   (bydi ((:sometimes buffer-live-p)
          (:othertimes hash-table-p)
-         (:always url-p)
+         (:always y-or-n-p)
          (:spy bydi-clear-mocks-for))
 
     (should (buffer-live-p))
     (should-not (hash-table-p))
-    (should (url-p))
+    (should (y-or-n-p))
 
     (bydi-toggle-sometimes)
 
     (should-not (buffer-live-p))
     (should (hash-table-p))
 
-    (should (gethash 'url-p bydi--history))
+    (should (gethash 'y-or-n-p bydi--history))
 
     (bydi-was-called bydi-clear-mocks-for)
 
@@ -287,6 +295,27 @@
 
     (should (buffer-live-p))
     (bydi-was-not-called bydi-clear-mocks-for)))
+
+(ert-deftest bydi-toggle-volatile ()
+  (bydi ((:sometimes buffer-live-p)
+         (:sometimes hash-table-p)
+         (:othertimes y-or-n-p))
+
+    (should (buffer-live-p))
+    (should (hash-table-p))
+    (should-not (y-or-n-p))
+
+    (bydi-toggle-volatile 'hash-table-p)
+
+    (should (buffer-live-p))
+    (should-not (hash-table-p))
+    (should-not (y-or-n-p))
+
+    (bydi-toggle-volatile 'y-or-n-p)
+
+    (should (buffer-live-p))
+    (should-not (hash-table-p))
+    (should (y-or-n-p))))
 
 (ert-deftest bydi-was-called ()
   (bydi-match-expansion

@@ -104,9 +104,12 @@ So what if your function branches? There's another short-hand for that.
     (should (string= (my-branching-project-name) "Test Project"))
     (bydi-was-called project-name)
 
-    (bydi-toggle-sometimes) ;; Toggles all `:sometimes' mocks, this
-                            ;; will automatically clear mocks for
-                            ;; them.
+    (bydi-toggle-sometimes) ;; Toggles all `:sometimes' and
+                            ;; `:othertimes' mocks, this will
+                            ;; automatically clear mocks for them.
+
+    ;; OR.
+    (bydi-toggle-volatile 'project-current) ;; Toggle `project-current' only.
 
     (should-not (my-branching-project-name))
     (bydi-was-not-called project-name)))

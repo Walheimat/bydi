@@ -47,11 +47,17 @@ and assignment results.")
 These are functions that, when mocked, do or may prevent test
 execution.")
 
-(defvar bydi-mock--sometimes nil
-  "Value for mocks using `:sometimes' and `:othertimes' shorthands.
+(defvar bydi-mock--always nil
+  "List of functions that will return t when called.
 
-All such functions will return this value. It will be set to t at
-the beginning and can be toggled using `bydi-toggle-sometimes'.")
+Can be toggled using `bydi-toggle-volatile' or
+`bydi-toggle-sometimes'.")
+
+(defvar bydi-mock--ignore nil
+  "List of functions that will return nil when called.
+
+Can be toggled using `bydi-toggle-volatile' or
+`bydi-toggle-sometimes'.")
 
 (defvar bydi-expect--elision '\...
   "Symbol indicating an elision during argument verification.
@@ -76,12 +82,6 @@ Allows removing anonymous advice.")
 Each variable will be watched to record the values assigned to
 it.")
 
-(defvar bydi-mock--volatile nil
-  "List of functions mocked using `:sometimes' or `:othertimes'.
-
-Functions in this list will have their history cleared on calling
-`bydi-toggle-sometimes'.")
-
 ;;; -- Macros
 
 (defmacro bydi--mock (to-mock &rest body)
@@ -100,14 +100,14 @@ REPLACE) returning the result of calling REPLACE, a plist of
 shape (:mock FUN :return VAL) returning VAL, a plist of
 shape (:ignore FUN) that will replace FUN with `ignore', a plist
 of shape (:always FUN) that will replace FUN with `always', a
-plist of shape (:sometimes FUN) that will return the value of
-variable `bydi-mock--sometimes', a plist of shape (:othertimes
-FUN) that will return the inverse of variable
-`bydi-mock--sometimes', a plist of shape (:spy FUN) that will
-advise FUN so that its invocations are recorded with its routine
-untouched, a plist of shape (:watch VAR) that will watch VAR so
-assignments are recorded, or a cons cell of shape (FUN . REPLACE)
-returning the result of calling REPLACE.
+plist of shape (:sometimes FUN) that will return t unless
+`bydi-mock-toggle-volatile' is called , a plist of
+shape (:othertimes FUN) that will do the inverse, a plist of
+shape (:spy FUN) that will advise FUN so that its invocations are
+recorded with its routine untouched, a plist of shape (:watch
+VAR) that will watch VAR so assignments are recorded, or a cons
+cell of shape (FUN . REPLACE) returning the result of calling
+REPLACE.
 
 BODY is the form evaluated while the mocking, spying and watching
 is in place. Any `bydi-was-*' verification macro needs to be part
@@ -121,9 +121,10 @@ of this form."
                 (bydi-spy--spies ',(bydi-mock--collect instructions :spy))
                 (bydi-watch--watchers ',(bydi-mock--collect instructions :watch))
 
-                (bydi-mock--sometimes t)
-                ,@(bydi-mock--mocks instructions))
+                (bydi-mock--always ',(bydi-mock--collect instructions :sometimes))
+                (bydi-mock--ignore ',(bydi-mock--collect instructions :othertimes))
 
+                ,@(bydi-mock--mocks instructions))
 
        (unwind-protect
 
@@ -397,14 +398,11 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
       `(,(plist-get mock :ignore) (apply #'ignore r)))
      ((plist-member mock :always)
       `(,(plist-get mock :always) (apply #'always r)))
-     ((plist-member mock :sometimes)
-      (let ((fun (plist-get mock :sometimes)))
-        (add-to-list 'bydi-mock--volatile fun)
-        `(,fun (funcall #'bydi-mock--sometimes))))
-     ((plist-member mock :othertimes)
-      (let ((fun (plist-get mock :othertimes)))
-        (add-to-list 'bydi-mock--volatile fun)
-        `(,fun (not (funcall #'bydi-mock--sometimes)))))))
+
+     ;; Volatile.
+     ((or (plist-member mock :sometimes) (plist-member mock :othertimes))
+      (let ((fun (or (plist-get mock :sometimes) (plist-get mock :othertimes))))
+        `(,fun (funcall #'bydi-mock--volatile ',fun))))))
 
    ((consp mock)
     `(,(car mock) (apply ,(cdr mock) r)))
@@ -446,9 +444,9 @@ Optionally, return RETURN."
            (memq :sometimes plist)
            (memq :othertimes plist))))
 
-(defun bydi-mock--sometimes ()
-  "Return value of variable `bydi-mock--sometimes'."
-  bydi-mock--sometimes)
+(defun bydi-mock--volatile (fun)
+  "Check if FUN should return t."
+  (memq fun bydi-mock--always))
 
 (defun bydi-mock--check (fun instruction)
   "Verify binding FUN using INSTRUCTION."
@@ -563,15 +561,33 @@ SYMBOL can be the name of a function or a variable."
   (remhash symbol bydi--history))
 
 (defun bydi-toggle-sometimes (&optional no-clear)
-  "Toggle variable `bydi-mock--sometimes'.
+  "Toggle all volatile functions.
 
-Unless NO-CLEAR is t, this also calls `bydi-clear-mocks' for all
-functions mocked using `:sometimes' or `:othertimes'."
-  (setq bydi-mock--sometimes (not bydi-mock--sometimes))
+Unless NO-CLEAR is t, this also calls `bydi-clear-mocks-for' for
+all functions."
+  (dolist (it (append bydi-mock--always bydi-mock--ignore))
+    (bydi-toggle-volatile it no-clear)))
+
+(defun bydi-toggle-volatile (fun &optional no-clear)
+  "Toggle volatile FUN.
+
+If this function previously returned t, it will now return nil
+and vice versa.
+
+Unless NO-CLEAR is t, this also calls `bydi-clear-mocks' for this
+function."
+  (cond
+   ((memq fun bydi-mock--always)
+
+    (setq bydi-mock--always (delete fun bydi-mock--always))
+    (push fun bydi-mock--ignore))
+   ((memq fun bydi-mock--ignore)
+
+    (setq bydi-mock--ignore (delete fun bydi-mock--ignore))
+    (push fun bydi-mock--always)))
 
   (unless no-clear
-    (dolist (it bydi-mock--volatile)
-      (bydi-clear-mocks-for it))))
+    (bydi-clear-mocks-for fun)))
 
 ;;;###autoload
 (defalias 'bydi 'bydi--mock)
