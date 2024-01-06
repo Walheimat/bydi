@@ -149,7 +149,7 @@ amount and arguments? There's more macros.
 #+END_SRC
 
 Sometimes you don't want to replace a function but still know if and
-how it was called.
+how it was called. You can use =:spy= for this.
 
 #+BEGIN_SRC emacs-lisp
 ;; Using `my-org-file-counter' defined above.
@@ -173,6 +173,31 @@ how it was called.
     ;; or
     (bydi-was-called-last-with file-name-extension "four.cpp")))
 #+END_SRC
+
+Spying has another advantage, you can selectively mock using macro
+=bydi-when=. This *does not* work for mocks.
+
+It allows you to stipulate when a function should return a certain
+value. The condition is the arguments with which the function is
+called.
+
+#+begin_src emacs-lisp
+(defun keep-adding-one-more (&rest numbers)
+  "Keep adding NUMBERS, but always one more."
+  (1+ (apply '+ numbers)))
+
+(ert-deftest sometimes-add-two-more ()
+  (bydi ((:spy keep-adding-one-more))
+
+    (should (eq 7 (keep-adding-one-more 1 2 3)))
+
+    ;; The t here means to only replace once.
+    (bydi-when keep-adding-one-more '(1 2 3) 1 t)
+
+    (should (eq 7 (keep-adding-one-more 3 2 1)))
+    (should (eq 1 (keep-adding-one-more 1 2 3)))
+    (should (eq 7 (keep-adding-one-more 1 2 3)))))
+#+end_src
 
 Similarly, you can watch variables.
 

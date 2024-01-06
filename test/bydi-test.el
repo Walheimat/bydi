@@ -23,6 +23,7 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
+         (bydi--when (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
@@ -48,6 +49,7 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
+         (bydi--when (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
@@ -77,6 +79,7 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
+         (bydi--when (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
@@ -116,6 +119,7 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
+         (bydi--when (make-hash-table :test 'equal))
          (bydi-spy--spies '(buffer-live-p derived-mode-p))
          (bydi-watch--watchers '(major-mode))
          (bydi-mock--always 'nil)
@@ -140,6 +144,7 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
+         (bydi--when (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
          (bydi-mock--always '(derived-mode-p))
@@ -171,6 +176,7 @@
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
+         (bydi--when (make-hash-table :test 'equal))
          (bydi-spy--spies 'nil)
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
@@ -194,6 +200,7 @@
        '(cl-letf*
             ((bydi--history
               (make-hash-table :test 'equal))
+             (bydi--when (make-hash-table :test 'equal))
              (bydi-spy--spies 'nil)
              (bydi-watch--watchers 'nil)
              (bydi-mock--always 'nil)
@@ -220,6 +227,7 @@
      '(cl-letf*
          ((bydi--history
            (make-hash-table :test 'equal))
+          (bydi--when (make-hash-table :test 'equal))
           (bydi-spy--spies 'nil)
           (bydi-watch--watchers 'nil)
           (bydi-mock--always 'nil)
@@ -481,6 +489,26 @@
     (bydi-was-set watched t)
 
     (bydi-was-not-set watched)))
+
+(ert-deftest bydi-when--returns-conditionally ()
+  (bydi ((:spy bydi-rf))
+
+    (bydi-when bydi-rf '(2 2) 5 t)
+
+    (should (equal 5 (bydi-rf 2 2)))
+    (should (equal 2 (bydi-rf 2 2)))
+
+    (bydi-when bydi-rf '(test this) 'what)
+
+    (should (equal 'what (bydi-rf 'test 'this)))
+    (should (equal 'test (bydi-rf 'test 'what)))
+    (should (equal 'what (bydi-rf 'test 'this)))))
+
+(ert-deftest bydi-when--warns ()
+  (bydi bydi--warn
+    (bydi-when bydi-rf '(test this) 'what)
+
+    (bydi-was-called-with bydi--warn (list "No spy for `%s' was recorded" 'bydi-rf))))
 
 ;;; bydi-test.el ends here
 

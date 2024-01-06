@@ -82,6 +82,8 @@ Allows removing anonymous advice.")
 Each variable will be watched to record the values assigned to
 it.")
 
+(defvar bydi--when nil)
+
 ;;;; Macros
 
 (defmacro bydi--mock (to-mock &rest body)
@@ -117,6 +119,7 @@ of this form."
   (let ((instructions (if (listp to-mock) to-mock (list to-mock))))
 
     `(cl-letf* ((bydi--history (make-hash-table :test 'equal))
+                (bydi--when (make-hash-table :test 'equal))
 
                 (bydi-spy--spies ',(bydi-mock--collect instructions :spy))
                 (bydi-watch--watchers ',(bydi-mock--collect instructions :watch))
@@ -461,15 +464,42 @@ Optionally, return RETURN."
   "Record invocations of FUN in history."
   (mapc (lambda (it)
           (advice-add
-           it :after
-           (lambda (&rest args)
-             (apply 'bydi--record (list it args)))
+           it :around
+           (lambda (fun &rest args)
+
+             (apply 'bydi--record (list it args))
+
+             (or (apply 'bydi-spy--when (append (list it) args))
+                 (apply fun args)))
            (list (cons 'name bydi-spy--advice-name))))
         bydi-spy--spies))
 
 (defun bydi-spy--clear ()
   "Clear all spies."
   (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spy--spies))
+
+(defun bydi-spy--when (fun &rest args)
+  "Maybe return recorded value for FUN.
+
+If ARGS match the the IN field of the recorded value, the value
+of OUT will be returned. If it was recorded with ONCE being t,
+the recording is removed before returning the OUT value."
+  (and-let* ((condition (gethash fun bydi--when))
+             ((equal args (plist-get condition :in))))
+
+    (when-let (rem (plist-get condition :once))
+      (remhash fun bydi--when))
+
+    (plist-get condition :out)))
+
+(defmacro bydi-when (fun in out &optional once)
+  "Return OUT when FUN is called with IN.
+
+If ONCE is to, only do this once."
+  `(progn
+     (unless (memq ',fun bydi-spy--spies)
+       (bydi--warn "No spy for `%s' was recorded" ',fun))
+     (puthash ',fun (list :in ,in :out ,out :once ,once) bydi--when)))
 
 ;;;; Watching
 
