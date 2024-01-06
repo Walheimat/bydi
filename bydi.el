@@ -30,7 +30,7 @@
 (require 'cl-lib)
 (require 'compat nil t)
 
-;;; -- Variables
+;;;; Variables
 
 (defvar bydi--history nil
   "An alist of the form (SYMBOL . (ARGS-1 ARGS-2 ...)).
@@ -82,7 +82,7 @@ Allows removing anonymous advice.")
 Each variable will be watched to record the values assigned to
 it.")
 
-;;; -- Macros
+;;;; Macros
 
 (defmacro bydi--mock (to-mock &rest body)
   "Evaluate a form with mocks.
@@ -134,7 +134,7 @@ of this form."
 
          (bydi--teardown)))))
 
-;;; -- Calling macros
+;;;; Calling macros
 
 (defmacro bydi-was-called (fun &optional clear)
   "Check if mocked FUN was called.
@@ -181,7 +181,7 @@ If CLEAR is t, clear the history of calls of that function."
   `(let ((actual (length (gethash ',fun bydi--history))))
      (should (bydi-verify--was-called-n-times ',fun ,expected actual))))
 
-;;; -- Setting macros
+;;;; Setting macros
 
 (defmacro bydi-was-set-to (var to &optional clear)
   "Check that VAR was set to TO.
@@ -225,7 +225,7 @@ If CLEAR is t, clear the history of assignments to that variable."
 
      (should-not (bydi-verify--was-set ',var 'not-set actual))))
 
-;;; -- Other macros
+;;;; Other macros
 
 (defmacro bydi-match-expansion (form &rest value)
   "Match expansion of FORM against VALUE."
@@ -238,7 +238,7 @@ If CLEAR is t, clear the history of assignments to that variable."
 
     `(progn ,@(mapcar (lambda (it) `(should (,check ,it ,expected))) forms))))
 
-;;; -- Helpers
+;;;; Helpers
 
 (defun bydi-return-first (a &rest _r)
   "Return first argument passed A."
@@ -255,7 +255,7 @@ If CLEAR is t, clear the history of assignments to that variable."
   'testing)
 (defalias 'bydi-rt 'bydi-return-testing)
 
-;;; -- Handlers
+;;;; Handlers
 
 (defun bydi--record (sym args)
   "Record SYM and return ARGS."
@@ -284,7 +284,7 @@ The MESSAGE will be formatted with ARGS."
    (apply #'format message args)
    :warning))
 
-;;; -- Verification
+;;;; Verification
 
 (defun bydi-verify--was-called (_fun _expected actual)
   "Verify that ACTUAL represents a function call."
@@ -368,7 +368,7 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
            (list (nth 0 a) (nth 0 b)))
       (list a b)))
 
-;;; -- Mocking
+;;;; Mocking
 
 (defun bydi-mock--mocks (instructions)
   "Get mocks for INSTRUCTIONS."
@@ -455,7 +455,7 @@ Optionally, return RETURN."
 
     (bydi--warn "Mocking `%s' may lead to issues" fun)))
 
-;;; -- Spying
+;;;; Spying
 
 (defun bydi-spy--create ()
   "Record invocations of FUN in history."
@@ -471,7 +471,7 @@ Optionally, return RETURN."
   "Clear all spies."
   (mapc (lambda (it) (advice-remove it bydi-spy--advice-name)) bydi-spy--spies))
 
-;;; -- Watching
+;;;; Watching
 
 (defun bydi-watch--watcher (symbol newval operation _where)
   "Record that SYMBOL was updated with NEWVAL.
@@ -492,7 +492,7 @@ Only records when OPERATION is a let or set binding."
    (lambda (it) (remove-variable-watcher it #'bydi-watch--watcher))
    bydi-watch--watchers))
 
-;;; -- Explaining
+;;;; Explaining
 
 (defun bydi-explain--wrong-call (fun expected actual)
   "Explain that FUN was called with ACTUAL not EXPECTED."
@@ -545,7 +545,7 @@ Only records when OPERATION is a let or set binding."
 
 (put 'bydi-verify--matches 'ert-explainer 'bydi-explain--explain-mismatch)
 
-;;; -- API
+;;;; API
 
 (defun bydi-clear-mocks ()
   "Clear all mocks.
