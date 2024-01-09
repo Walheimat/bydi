@@ -7,7 +7,7 @@
  (depends-on "undercover")
  (depends-on "compat"))
 
-(package "bydi" "0.6.1" "Mocking facilities")
+(package "bydi" "0.6.2" "Mocking facilities")
 
 (package-file "bydi.el")
 
