@@ -2,7 +2,7 @@
 
 ;; Author: Krister Schuchardt <krister.schuchardt@gmail.com>
 ;; Homepage: https://github.com/Walheimat/bydi
-;; Version: 0.6.2
+;; Version: 0.6.3
 ;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: extensions
 
@@ -449,7 +449,7 @@ Optionally, return RETURN."
 
 (defun bydi-mock--volatile (fun)
   "Check if FUN should return t."
-  (memq fun bydi-mock--always))
+  (and (memq fun bydi-mock--always) t))
 
 (defun bydi-mock--check (fun instruction)
   "Verify binding FUN using INSTRUCTION."
