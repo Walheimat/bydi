@@ -75,7 +75,8 @@
    (bydi--mock ((:return "hello" :mock substring)
                 (:risky-mock buffer-file-name :return "/tmp/test.el")
                 (:risky-mock bydi-ra :with ignore)
-                (:with always :mock buffer-live-p))
+                (:with always :mock buffer-live-p)
+                (:fail forward-line :with user-error))
      (should (always)))
    `(cl-letf*
         ((bydi--history (make-hash-table :test 'equal))
@@ -103,7 +104,12 @@
           (lambda (&rest r)
             (interactive)
             (apply 'bydi--record (list 'buffer-live-p r))
-            (apply #'always r))))
+            (apply #'always r)))
+         ((symbol-function 'forward-line)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi--record (list 'forward-line r))
+            (apply #'user-error '("User error")))))
       (unwind-protect
           (progn
             (bydi--setup)
@@ -509,6 +515,20 @@
     (bydi-when bydi-rf '(test this) 'what)
 
     (bydi-was-called-with bydi--warn (list "No spy for `%s' was recorded" 'bydi-rf))))
+
+(ert-deftest bydi-mock--fail ()
+  :tags '(mock bindings)
+
+  (bydi ((:fail previous-line)
+         (:fail forward-line :with user-error)
+         (:fail forward-paragraph :args '(no-catch "This is a test"))
+         (:fail backward-paragraph :with user-error))
+
+    (should-error (previous-line) :type 'error)
+    (should-error (forward-line) :type 'user-error)
+    (should-error (forward-paragraph) :type 'no-catch)
+    (should-error (backward-paragraph) :type 'error)))
+
 
 ;;; bydi-test.el ends here
 

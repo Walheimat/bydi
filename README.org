@@ -148,6 +148,28 @@ amount and arguments? There's more macros.
     (bydi-was-called-nth-with file-name-extension "three.org" 2)))
 #+END_SRC
 
+Sometimes you want a specific function reliably fail. You can use
+=:fail= for this.
+
+#+begin_src emacs-lisp
+(defun one-word-forward-two-chars-back ()
+  "Go forward one word and two chars back."
+  (forward-word)
+  (backward-char)
+  (backward-char))
+
+(ert-deftest words-fail-me ()
+  (bydi ((:spy forward-word)
+         (:fail backward-char))
+
+    (should-error (one-word-forward-two-chars-back) :type 'error)
+
+    (bydi-was-called forward-word)))
+#+end_src
+
+You can also use =:with= to pass the name of another error (for
+example =user-error=) and you can use =:args= to pass arguments.
+
 Sometimes you don't want to replace a function but still know if and
 how it was called. You can use =:spy= for this.
 

@@ -387,12 +387,30 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
   (cond
    ((bydi-mock--valid-plistp mock)
     (cond
+     ;; Returning constant value or variable.
      ((plist-member mock :return)
       (unless (plist-get mock :return)
         (bydi--warn "Returning `nil' may lead to unexpected results"))
-      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) ,(or (plist-get mock :return))))
+      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) ,(plist-get mock :return)))
+
+     ;; Signaling.
+     ((plist-member mock :fail)
+      `(,(plist-get mock :fail)
+        ,(let ((type (or (plist-get mock :with) 'signal)))
+
+           `(apply #',type
+                   ,(or (plist-get mock :args)
+                        (pcase type
+                          ('user-error
+                           ''("User error"))
+                          ('signal
+                           ''(error "Lisp error"))))))))
+
+     ;; Replacing implementation.
      ((plist-member mock :with)
       `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) (apply #',(plist-get mock :with) r)))
+
+     ;; Ignore spying and watching.
      ((or (plist-member mock :spy) (plist-member mock :watch))
       '(nil nil))
 
@@ -440,6 +458,7 @@ Optionally, return RETURN."
        (or (and (or (memq :mock plist) (memq :risky-mock plist))
                 (or (memq :return plist)
                     (memq :with plist)))
+           (memq :fail plist)
            (memq :spy plist)
            (memq :watch plist)
            (memq :always plist)
