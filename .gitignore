@@ -5,3 +5,5 @@ bydi-autoloads.el
 bydi-pgk.el
 coverage
 dist/
+
+node_modules/
