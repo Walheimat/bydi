@@ -82,7 +82,8 @@ Allows removing anonymous advice.")
 Each variable will be watched to record the values assigned to
 it.")
 
-(defvar bydi--when nil)
+(defvar bydi--when nil
+  "Hash table of selective mocking of spies.")
 
 ;;;; Macros
 
@@ -504,21 +505,24 @@ If ARGS match the the IN field of the recorded value, the value
 of OUT will be returned. If it was recorded with ONCE being t,
 the recording is removed before returning the OUT value."
   (and-let* ((condition (gethash fun bydi--when))
-             ((equal args (plist-get condition :in))))
+             ((equal args (plist-get condition :called-with))))
 
     (when-let (rem (plist-get condition :once))
       (remhash fun bydi--when))
 
-    (plist-get condition :out)))
+    (plist-get condition :then-return)))
 
-(defmacro bydi-when (fun in out &optional once)
-  "Return OUT when FUN is called with IN.
+(cl-defmacro bydi-when--answer (fun &key called-with then-return once)
+  "Return THEN-RETURN when FUN is called with CALLED-WITH.
 
 If ONCE is to, only do this once."
   `(progn
      (unless (memq ',fun bydi-spy--spies)
        (bydi--warn "No spy for `%s' was recorded" ',fun))
-     (puthash ',fun (list :in ,in :out ,out :once ,once) bydi--when)))
+     (puthash
+      ',fun
+      (list :called-with ,called-with :then-return ,then-return :once ,once)
+      bydi--when)))
 
 ;;;; Watching
 
@@ -643,6 +647,8 @@ function."
 
 ;;;###autoload
 (defalias 'bydi-with-mock 'bydi--mock)
+
+(defalias 'bydi-when 'bydi-when--answer)
 
 (provide 'bydi)
 

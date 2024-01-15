@@ -499,12 +499,12 @@
 (ert-deftest bydi-when--returns-conditionally ()
   (bydi ((:spy bydi-rf))
 
-    (bydi-when bydi-rf '(2 2) 5 t)
+    (bydi-when bydi-rf :called-with '(2 2) :then-return 5 :once t)
 
     (should (equal 5 (bydi-rf 2 2)))
     (should (equal 2 (bydi-rf 2 2)))
 
-    (bydi-when bydi-rf '(test this) 'what)
+    (bydi-when bydi-rf :called-with '(test this) :then-return 'what)
 
     (should (equal 'what (bydi-rf 'test 'this)))
     (should (equal 'test (bydi-rf 'test 'what)))
@@ -512,7 +512,7 @@
 
 (ert-deftest bydi-when--warns ()
   (bydi bydi--warn
-    (bydi-when bydi-rf '(test this) 'what)
+    (bydi-when bydi-rf :called-with '(test this) :then-return 'what)
 
     (bydi-was-called-with bydi--warn (list "No spy for `%s' was recorded" 'bydi-rf))))
 

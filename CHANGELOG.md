@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   uses `signal` passing `'(error "Lisp error")` but what is used can
   be set using `:with` and what is passed using `:args`.
 
+### Changed
+
+- `bydi-when` now uses keywords. This is a breaking change.
+
 ## [0.6.3]
 
 ### Fixed

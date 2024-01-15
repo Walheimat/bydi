@@ -213,8 +213,9 @@ called.
 
     (should (eq 7 (keep-adding-one-more 1 2 3)))
 
-    ;; The t here means to only replace once.
-    (bydi-when keep-adding-one-more '(1 2 3) 1 t)
+    ;; Return 1 when `keep-adding-one-more' is called with '(1 2 3)
+    ;; but only do that once.
+    (bydi-when keep-adding-one-more :called-with '(1 2 3) :then-return 1 :once t)
 
     (should (eq 7 (keep-adding-one-more 3 2 1)))
     (should (eq 1 (keep-adding-one-more 1 2 3)))
