@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.5](https://github.com/Walheimat/bydi/compare/v0.6.4...v0.6.5) (2024-01-27)
+
+
+### Features
+
+* **ci:** release job ([5f30a1d](https://github.com/Walheimat/bydi/commit/5f30a1dcf699e4be172df4dab513463741f491b3))
+
 ## [0.6.4]
 
 ### Added
