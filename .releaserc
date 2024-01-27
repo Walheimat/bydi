@@ -1,0 +1,40 @@
+{
+  "branches": [
+    "trunk",
+    "feature/changelog"
+  ],
+  "repositoryUrl": "git@github.com:Walheimat/bydi.git",
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits",
+        "releaseRules": [
+          {
+            "type": "feat",
+            "release": "patch"
+          }
+        ]
+      },
+    ],
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/exec",
+      {
+        "publishCmd": "make update-next-version NEXT_PACKAGE_VERSION=${nextRelease.version}"
+      }
+    ],
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogTitle": "# Changelog"
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "bydi.el", "Cask", "Makefile"]
+      }
+    ]
+  ]
+}
