@@ -4,9 +4,10 @@ on:
     branches:
       - trunk
     paths-ignore:
-      - '.gitignore'
-      - 'CHANGELOG.md'
-      - 'README.org'
+      - .gitignore
+      - CHANGELOG.md
+      - README.org
+  workflow_call:
 
 jobs:
   test:
