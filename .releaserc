@@ -1,20 +1,12 @@
 {
-  "branches": [
-    "trunk"
-  ],
+  "branches": ["trunk"],
   "repositoryUrl": "git@github.com:Walheimat/bydi.git",
   "plugins": [
     [
       "@semantic-release/commit-analyzer",
       {
-        "preset": "conventionalcommits",
-        "releaseRules": [
-          {
-            "type": "feat",
-            "release": "patch"
-          }
-        ]
-      },
+        "preset": "conventionalcommits"
+      }
     ],
     "@semantic-release/release-notes-generator",
     [
@@ -32,12 +24,7 @@
     [
       "@semantic-release/git",
       {
-        "assets": [
-          "CHANGELOG.md",
-          "bydi.el",
-          "Cask",
-          "Makefile"
-        ]
+        "assets": ["CHANGELOG.md", "bydi.el", "Cask", "Makefile"]
       }
     ]
   ]
