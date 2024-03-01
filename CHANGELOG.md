@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/Walheimat/bydi/compare/v0.6.5...v0.7.0) (2024-03-01)
+
+
+### Features
+
+* **mock:** add keyword :var ([fe2d75c](https://github.com/Walheimat/bydi/commit/fe2d75cd6b190a21b75685cc54c836e690f35eb8))
+
 ## [0.6.5](https://github.com/Walheimat/bydi/compare/v0.6.4...v0.6.5) (2024-01-27)
 
 
