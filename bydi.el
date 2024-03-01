@@ -59,6 +59,9 @@ Can be toggled using `bydi-toggle-volatile' or
 Can be toggled using `bydi-toggle-volatile' or
 `bydi-toggle-sometimes'.")
 
+(defvar bydi-mock--vars nil
+  "List of variables created for mocks using `:var'.")
+
 (defvar bydi-expect--elision '\...
   "Symbol indicating an elision during argument verification.
 
@@ -127,6 +130,7 @@ of this form."
 
                 (bydi-mock--always ',(bydi-mock--collect instructions :sometimes))
                 (bydi-mock--ignore ',(bydi-mock--collect instructions :othertimes))
+                (bydi-mock--vars ',(bydi-mock--collect instructions :var))
 
                 ,@(bydi-mock--mocks instructions))
 
@@ -277,7 +281,8 @@ If CLEAR is t, clear the history of assignments to that variable."
 (defun bydi--teardown ()
   "Tear down spies and watchers."
   (bydi-spy--clear)
-  (bydi-watch--clear))
+  (bydi-watch--clear)
+  (bydi-mock--clear))
 
 (defun bydi--warn (message &rest args)
   "Emit a warning.
@@ -376,12 +381,13 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
 
 (defun bydi-mock--mocks (instructions)
   "Get mocks for INSTRUCTIONS."
-  (delq nil (mapcar (lambda (it)
-                      (cl-destructuring-bind (bind to) (bydi-mock--binding it)
-                        (when bind
-                          (bydi-mock--check bind it)
-                          (bydi-mock--bind bind to))))
-                    instructions)))
+  (cl-loop for instruction in instructions
+           for bindings = (cl-destructuring-bind (bind type composite) (bydi-mock--binding instruction)
+                            (when bind
+                              (bydi-mock--check bind instruction)
+                              (bydi-mock--bind bind type composite)))
+           if bindings
+           nconc bindings))
 
 (defun bydi-mock--binding (mock)
   "Get function and binding for MOCK."
@@ -392,11 +398,14 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
      ((plist-member mock :return)
       (unless (plist-get mock :return)
         (bydi--warn "Returning `nil' may lead to unexpected results"))
-      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) ,(plist-get mock :return)))
+      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock))
+        replace
+        ,(plist-get mock :return)))
 
      ;; Signaling.
      ((plist-member mock :fail)
       `(,(plist-get mock :fail)
+        replace
         ,(let ((type (or (plist-get mock :with) 'signal)))
 
            `(apply #',type
@@ -409,42 +418,64 @@ This is done by checking that ACTUAL is not the symbol `not-set'."
 
      ;; Replacing implementation.
      ((plist-member mock :with)
-      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock)) (apply #',(plist-get mock :with) r)))
+      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock))
+        replace
+        (apply #',(plist-get mock :with) r)))
+
+     ;; Creating a variable.
+     ((plist-member mock :var)
+      `(,(or (plist-get mock :mock) (plist-get mock :risky-mock))
+        var
+        (,(plist-get mock :var) ,(plist-get mock :initial))))
 
      ;; Ignore spying and watching.
      ((or (plist-member mock :spy) (plist-member mock :watch))
-      '(nil nil))
+      '(nil default nil))
 
      ;; Short-hands.
      ((plist-member mock :ignore)
-      `(,(plist-get mock :ignore) (apply #'ignore r)))
+      `(,(plist-get mock :ignore) replace (apply #'ignore r)))
      ((plist-member mock :always)
-      `(,(plist-get mock :always) (apply #'always r)))
+      `(,(plist-get mock :always) replace (apply #'always r)))
 
      ;; Volatile.
      ((or (plist-member mock :sometimes) (plist-member mock :othertimes))
       (let ((fun (or (plist-get mock :sometimes) (plist-get mock :othertimes))))
-        `(,fun (funcall #'bydi-mock--volatile ',fun))))))
+        `(,fun replace (funcall #'bydi-mock--volatile ',fun))))))
 
    ((consp mock)
-    `(,(car mock) (apply ,(cdr mock) r)))
+    `(,(car mock) replace (apply ,(cdr mock) r)))
 
-   (t `(,mock nil))))
+   (t `(,mock default nil))))
 
-(defun bydi-mock--bind (fun &optional return)
+(defun bydi-mock--bind (fun type &optional composite)
   "Return template to override FUN.
 
-Optionally, return RETURN."
-  (if return
-      `((symbol-function ',fun)
+TYPE determines the composition of the mock function. COMPOSITE
+is used to build it."
+  (pcase type
+    ('replace
+     `(((symbol-function ',fun)
         (lambda (&rest r)
           (interactive)
           (apply 'bydi--record (list ',fun r))
-          ,return))
-    `((symbol-function ',fun)
-      (lambda (&rest r)
-        (interactive)
-        (apply 'bydi--record (list ',fun r))))))
+          ,composite))))
+    ('var
+     (let* ((name (car-safe composite))
+            (val (cadr composite))
+            (var (intern (symbol-name name))))
+
+       `((,var ,val)
+         ((symbol-function ',fun)
+          (lambda (&rest r)
+            (interactive)
+            (apply 'bydi--record (list ',fun r))
+            ,var)))))
+    ('default
+     `(((symbol-function ',fun)
+        (lambda (&rest r)
+          (interactive)
+          (apply 'bydi--record (list ',fun r))))))))
 
 (defun bydi-mock--collect (instructions prop)
   "Collect PROP entries from INSTRUCTIONS."
@@ -458,7 +489,8 @@ Optionally, return RETURN."
   (and (plistp plist)
        (or (and (or (memq :mock plist) (memq :risky-mock plist))
                 (or (memq :return plist)
-                    (memq :with plist)))
+                    (memq :with plist)
+                    (memq :var plist)))
            (memq :fail plist)
            (memq :spy plist)
            (memq :watch plist)
@@ -477,6 +509,10 @@ Optionally, return RETURN."
              (not (memq :risky-mock instruction)))
 
     (bydi--warn "Mocking `%s' may lead to issues" fun)))
+
+(defun bydi-mock--clear ()
+  "Unintern interned variables."
+  (mapc (lambda (it) (unintern it nil)) bydi-mock--vars))
 
 ;;;; Spying
 

@@ -28,6 +28,7 @@
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
          (bydi-mock--ignore 'nil)
+         (bydi-mock--vars 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -54,6 +55,7 @@
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
          (bydi-mock--ignore 'nil)
+         (bydi-mock--vars 'nil)
          ((symbol-function 'bydi-rt)
           (lambda (&rest r)
             (interactive)
@@ -85,6 +87,7 @@
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
          (bydi-mock--ignore 'nil)
+         (bydi-mock--vars 'nil)
          ((symbol-function 'substring)
           (lambda (&rest r)
             (interactive)
@@ -130,6 +133,7 @@
          (bydi-watch--watchers '(major-mode))
          (bydi-mock--always 'nil)
          (bydi-mock--ignore 'nil)
+         (bydi-mock--vars 'nil)
          ((symbol-function 'abbrev-table-p)
           (lambda (&rest r)
             (interactive)
@@ -155,6 +159,7 @@
          (bydi-watch--watchers 'nil)
          (bydi-mock--always '(derived-mode-p))
          (bydi-mock--ignore 'nil)
+         (bydi-mock--vars 'nil)
          ((symbol-function 'buffer-live-p)
           (lambda (&rest r)
             (interactive)
@@ -187,6 +192,7 @@
          (bydi-watch--watchers 'nil)
          (bydi-mock--always 'nil)
          (bydi-mock--ignore 'nil)
+         (bydi-mock--vars 'nil)
          ((symbol-function 'bydi-rf)
           (lambda (&rest r)
             (interactive)
@@ -211,6 +217,7 @@
              (bydi-watch--watchers 'nil)
              (bydi-mock--always 'nil)
              (bydi-mock--ignore 'nil)
+             (bydi-mock--vars 'nil)
              ((symbol-function 'new-line)
               (lambda
                 (&rest r)
@@ -238,12 +245,14 @@
           (bydi-watch--watchers 'nil)
           (bydi-mock--always 'nil)
           (bydi-mock--ignore 'nil)
+          (bydi-mock--vars 'nil)
           ((symbol-function 'ignore)
            (lambda
              (&rest r)
              (interactive)
              (apply 'bydi--record
-                    (list 'ignore r)))))
+                    (list 'ignore r))
+             nil)))
         (unwind-protect
             (progn
               (bydi--setup)
@@ -529,6 +538,23 @@
     (should-error (forward-paragraph) :type 'no-catch)
     (should-error (backward-paragraph) :type 'error)))
 
+(ert-deftest bydi-mock--var ()
+  :tags '(mock bindings)
+
+  (bydi ((:mock previous-line :var test-var :initial "testing")
+         (:risky-mock next-line :var mock-var))
+
+    (should (string= (previous-line) "testing"))
+
+    (setq test-var "mocking")
+
+    (should (string= (previous-line) "mocking"))
+
+    (should-not (next-line))
+
+    (setq mock-var "testing")
+
+    (should (string= (next-line) "testing"))))
 
 ;;; bydi-test.el ends here
 
